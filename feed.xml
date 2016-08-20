@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Food for Thought Expected</title>
+    <description>while [ &#39;alive&#39; ]; do think &amp;&amp; act | tee blog; done</description>
+    <link>http://l.duitang.com/</link>
+    <atom:link href="http://l.duitang.com/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Sat, 20 Aug 2016 17:47:16 +0800</pubDate>
+    <lastBuildDate>Sat, 20 Aug 2016 17:47:16 +0800</lastBuildDate>
+    <generator>Jekyll v3.1.6</generator>
+    
+      <item>
+        <title>“阿法狗”的武功秘籍</title>
+        <description>&lt;p&gt;5月，下围棋的阿法狗，用战胜李世石霸占了我的头条，这两天，会美图的“阿法狗”，开始入侵我的相册，名字不土了，叫Prisma，挺秀气。&lt;/p&gt;
+
+&lt;p&gt;先来感受下她的画风。呃，准确来说，是凡高风，毕加索风，列维坦风……&lt;/p&gt;
+
+&lt;p&gt;随手拍一张：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-1.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;选择“Candy”派，变酱紫，挂在画展里也毫无违和感。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-2.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;换个“wave”风看看：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-3.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;拿来装逼，不会有被雷劈的风险。&lt;/p&gt;
+
+&lt;p&gt;“我们会像一名真正的艺术家一样重新创作”，创始人Alexey说。据说，和凡老，毕老比起来，他们的创作速度快得不只一点点，秒秒钟搞定一幅艺术品。激动地试了下，然并卵，来自网络错误和服务器繁忙的硬伤不下50点。一张图片跨越万水千山终于到达远在俄罗斯的服务器，却被礼貌地告知已经人满为患，请再跑一趟。&lt;/p&gt;
+
+&lt;p&gt;想想创作总是艰难的，也就原谅他们了，尤其这等上乘功夫，一群内功深厚的服务器合力方能驾驭，远非势单力薄的手机所能修炼。&lt;/p&gt;
+
+&lt;p&gt;可等待也是艰难的，排队的时候，做点什么呢？不如扒一扒这位俄罗斯大师的秘籍吧。她量产艺术品的过程是，从经典的画作中提炼画风，再分析用户上传的照片，两个结合，duang，一幅全新的作品诞生了。和阿法狗相似的地方在于，她们都修炼了一种深度学习算法，卷积神经网络。&lt;/p&gt;
+
+&lt;p&gt;卷积神经网络，没有金庸”八荒六合唯我独尊功”式的朗朗上口，却不妨碍我们窥探其奥秘，下面就翻一翻这本秘籍。&lt;/p&gt;
+
+&lt;p&gt;开篇第一式，卷积。&lt;/p&gt;
+
+&lt;p&gt;要修炼卷积，必须酒足饭饱。每次修炼前，得先查下胃。饱餐一顿后，肚子里剩余的食物量在慢慢减少，这个过程可以表示为：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-4.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;差不多五个小时，肚子里的东西就消化完了。如果练功偷懒，体能消耗慢一些，也可能是六小时，七小时。&lt;/p&gt;
+
+&lt;p&gt;不管怎样，为了早日修成此功，你三餐不落，早上7点，中午12点和晚上6点，各吃了一顿，只是量稍有不同，也用一张图表示：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-5.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;肚子里剩余的食物就是前面没消化完的，和时间的关系可以表示为：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-6.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;当然，练功偷懒的人，耗能少，上一顿没消化完就吃下一顿了，曲线就变成这样：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-7.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;师傅，我吃饱了，咱开始教招式吧。&lt;br /&gt;
+我已经讲了。&lt;br /&gt;
+可，明明只说了吃饭。&lt;br /&gt;
+招式就在饭里。&lt;br /&gt;
+……&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;要练成第一式，吃饭除了要准时，姿势也很重要。不论是狼吞虎咽，还是细嚼慢咽，只要是相同的吃法，都要有相同的消化法，要切换自如，还要能叠加，这叫“线性”。无论是中午吃，还是晚上吃，时间虽不同，只要吃法一致，消化方式也必须一致，这叫“时不变”。&lt;/p&gt;
+
+&lt;p&gt;达到这一境界，便练成了第一式。对于这样的肠胃（线性时不变系统），消化快慢的规律，叫“冲激响应”，取决于修炼者的身体情况，三餐吃的饭量是“输入”，肚子里剩余的食物量是“输出”。输出和输入的关系就叫“卷积”，函数f和h的卷积写成：&lt;/p&gt;
+
+&lt;center&gt;h (x) = f ⊗ g  &lt;/center&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“可是，画画涉及的是图形图像处理，和“吃饭”如何能联系在一起呢？”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;吃饭的过程也可以理解为，根据特定的规律（消化），把若干份不同的信息（饭）混合的过程。图片是长宽固定的像素矩阵，它本身就是一份信息。和谁混合呢？我们人为制造的另外一个矩阵（卷积核），具体什么样的矩阵取决于我们需要达到什么样的目的。混合后得到的，就是机器学习里经常提到的“特征”。&lt;/p&gt;
+
+&lt;center&gt;feature map = input ⊗ kernel  &lt;/center&gt;
+&lt;p&gt;&lt;br /&gt;&lt;/p&gt;
+
+&lt;p&gt;比如，我们想保留图片内物体的轮廓，去除颜色，就可以这样：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-8.webp&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;当然，细节要比这个复杂一些，并不是直接用整个图片矩阵计算，而是逐一滑动窗口计算，注意看动图：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/alphago1-9.gif&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“咦，上面说的明明是卷积，这张图里怎么是乘积呢？”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;问得好（眼太尖），但是要回答好可不容易。肚子里剩余食物显然是随时间的变化而变化的，这种变化是发生在“时域”上的。图片在采集特征之前，做了傅里叶变换，从时域转到了频域，而时域上的卷积就是频域上的乘积。因此，处理图片时的乘积和吃饭时的卷积，不仅不矛盾，而且在本质上是一回事。&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“傅里叶变换是个什么鬼？”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;傅里叶变换，卷积的姊妹心法，20世纪最重要的公式，之一，一旦掌握，卷积大法也就指日可待。傅的名声大噪，在于它是众多其它法门的基础，犹如小无相功，可催动少林七十二门绝技。&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“这么牛逼，赶紧讲讲。”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;没问题，只是这里篇幅太小（能力有限），施展不开（讲不清楚），还请移步知乎，看韩昊对此所做的精妙阐述。&lt;/p&gt;
+
+&lt;p&gt;咱们还是回来继续撸卷积。Kaggle——机器学习界的少林寺，流行这么个说法：&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Feature engineering is the most important skill to score well in competitions.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;em&gt;“用人话讲就是，特征定得了，功夫才能好。”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;没错，异于其它事物的任何属性都是特征，轮廓，颜色，亮度，质地……凡老，毕老的画各有特点，他们的画风就是众多特征的集合。图片和卷积核运算后，去除了无关的信息，只留下这个核关心的信息，从这个角度看，卷积核就是筛子。构造足够多这样的筛子，就可以量化地取得很多特征。看似只可意会，不可言传的“画风”，卷积大法一出，便手到擒来。&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;“吹牛，若真这么简单，论资排辈，也轮不到看特征了。”&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;嗬，变聪明了嘛。构造合适的卷积核，颇费脑筋，怎么办？让机器自动帮我们选择合适的卷积核。具体如何操练？且看下回，神功第二式——神经网络。&lt;/p&gt;
+</description>
+        <pubDate>Mon, 25 Jul 2016 13:04:07 +0800</pubDate>
+        <link>http://l.duitang.com/machine-learning/2016/07/25/alphago-kungfu-1.html</link>
+        <guid isPermaLink="true">http://l.duitang.com/machine-learning/2016/07/25/alphago-kungfu-1.html</guid>
+        
+        
+        <category>machine-learning</category>
+        
+      </item>
+    
+  </channel>
+</rss>
