@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    
+        <title>魔都有多少喵星人？</title>
+    
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="site-header" role="banner">
+    <div class="wrapper">
+    <a class="site-title" href="/">Food for Thought Expected</a>
+    </div>
+    </header>
+    <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+        <div class="post">
+    <h3 class="post-title">魔都有多少喵星人？</h3>
+    <p class="post-date">July 18, 2016</p>
+    <p class="post-meta"></p>
+    <div class="post-content"?>
+        <p>据说曾经有位西方记者问周总理，中国有多少厕所，周总理回答有两个，男厕所和女厕所。很机智，但也回避了这个问题。今天我们不回避，来聊了聊一个类似的问题，魔都有多少只猫。</p>
+
+<p>问题很刁钻，看着又有几分眼熟，“全世界共有多少名钢琴调音师？”，“多少只高尔夫球才能填满一辆校车？”，没错，这是谷歌等公司在面试时喜欢问的问题。</p>
+
+<p>这么问，大概不是为了碾压智商的，即使最聪明的人，也无法准确说出这些数字。开放性问题很友善，谁都能给出答案，又绵里藏针，因为对思维品质的要求很高，要在短时间内给出有理有据的回答，相当困难。</p>
+
+<p><strong>化整为零，各个击破</strong></p>
+
+<p>费米是回答这类问题的大师。1945年的7月16号，内华达的沙漠深处，美国人傲骄地试爆了第一颗原子弹，远离爆点的基地里，工程师们紧张地盯着繁忙的仪表，忙得不可开交。一旁的费米，作为“曼哈顿计划”的主要领导者，却闲庭信步，玩起了撕纸片游戏，把纸片撕碎，然后扔向天空，如是几次之后，沉吟片刻，轻描淡写的说道，爆炸当量大概相当于1万吨TNT。而精确计算后的爆炸当量是2万吨TNT，只差1倍。上一刻还在各种忙乱的大家，此刻怀着错愕的心情，转入计算内心的受伤面积，“how do you know by…”。费米淡淡一笑，并没有回答，引发了几十年后Quora和果壳上的种种猜测。</p>
+
+<p>没有直接答案，但费米在后来的执教中留下了回答这类问题的一般性思路，Fermi-ize。</p>
+
+<p>这类问题通常涉及我们不熟悉的领域，或在尺度上非日常生活所能感知。直接回答，困难重重，即使答得精确，也难以让人信服。因此，第一步是化整为零，各个击破（divide and conquer）。大问题分解成小问题，混沌状态分解成已知部分和未知部分。取决于对问题领域的了解程度，可能仍然摆脱不了猜测的成分。但不同的是，此时不再是一个黑盒子，而是把其中的一个量从盒子里拖了出来，有更大的概率取得更为准确的估计。当然，在这一过程中，仍然需要鼓起勇气，克服对陌生领域的恐惧，大胆地说出我们的假设和估计，并且承认结果依然可能是错的。快速发现错误，逐步迭代，比把它掩藏起来要好得多。</p>
+
+<p><strong>用树形解构问题</strong></p>
+
+<p>用顺序表述的文字来描述分解和分析的过程，隐藏了子问题层级结构，面对复杂问题时便不那么直观。The Art of Insight in Science and Engineering（以下简称the art）一书中提出了树形分解法（tree presentation）。简单的问题，如“每天北京到上海的铁路客运量有多少”，可以表示为：</p>
+
+<p><img src="/img/201607/cat-1.jpg" alt="image-title-here" class="img-responsive" /></p>
+
+<p>稍微复杂一点的，如“一张纸的体积有多少？”，可以表示为：</p>
+
+<p><img src="/img/201607/cat-2.jpg" alt="image-title-here" class="img-responsive" /></p>
+
+<p>其中ream（令）有500张纸，-1表示倒数。一张纸的体积很难估算，分解为相对容易估算的长度，宽度，一张纸的厚度不好估计，500张好估计多了，所以，可以把厚度再次做分解。</p>
+
+<p><img src="/img/201607/cat-3.jpg" alt="image-title-here" class="img-responsive" /></p>
+
+<p>分解到什么程度适合呢？到你对估算的准度有较大把握时即可。比如上面的纸张体积问题，也许对于有些人（如造纸厂的工人），一张纸的厚度，已经可以直接估算了。</p>
+
+<p><strong>依靠直觉估算</strong></p>
+
+<p>树形分解时，对叶子节点的估算有时不得不依靠直觉。直觉的合理性一定程度上决定了整个估算的准确性，因此有必要讨论下如何提高直觉的合理性。中学课堂上教的多次测量取平均值不失为一种方式。但考虑到平均值比较容易受极值的影响。</p>
+
+<p>the art中提出了几何平均的方式。并且，不是直接依赖直觉给出数值，而是考虑到右脑的特点，用问的方式来间接逼近。如，估算上海市的平均人口密度，从一个极限值开始，逐步向另一个权限靠近，如高于1000平米／人都是你直觉上判断不太可能的，那么记下1000这个数值。逐步向下，直到一个很小的数值，如低于50平米／人后，直觉上会说，局部地区也许会达到或低于50平米一个人，但整个市平均这么低，可能性很低，所以最终给出的平均值应该是sqrt(50*1000)，即223.6平米／人，或者说4472人／平方公里。这和2010年人口普查时的3631人／平方公里相差不远。</p>
+
+<p>要选择合适的单位进行估算。对我的直觉来说，每人占多少平米比每平方公里多少人更容易估计，因此我选择前者为单位，而不是后者。</p>
+
+<p><strong>蒙特卡罗方法</strong></p>
+
+<p>有些领域在生活中几乎不会涉及，毫无直觉可言。比如圆周率π，大概没有人能凭直觉说出它约为3.14吧。这时候，需要直觉之外的方法。同样是在“曼哈顿计划”，S.M.乌拉姆和冯·诺伊曼提出了蒙特卡罗方法。其原理是通过大量随机试验，统计样本，计算所需要的值。</p>
+
+<p>用蒙特卡罗方法估算π可以这么做。在正方形内部画一个相切的圆，那么，它们的面积之比是π/4（π*r^2/(2*r)^2）。在这个正方形内部，随机产生10000个点，计算它们与中心点的距离，从而判断是否落在圆的内部。如果这些点均匀分布，那么圆内的点应该占到所有点的 π/4，因此将这个比值乘以4，就是π的值。</p>
+
+<p><img src="/img/201607/cat-4.jpg" alt="image-title-here" class="img-responsive" /></p>
+
+<p>回到开头的问题，魔都有多少喵星人？</p>
+
+<p>我们可以利用上面的树形分解和直觉估算法进行估计。因为问题结构比较清晰，可以在脑子里迅速画出树形图。野生的和家养的在数量上相差不大，因此总数应该是后者的两倍。上海市2300万人（常识，差不离即可，如果缺乏这个常识，则利用上面的人口密度估算）, 由于上海市的生育水平较低，同时存在大量外来人口和单身年轻人，因此家庭的平均人口应该比较低，大概2.2人一个家庭，通过对身边朋友同事的不完全采样，以及直觉估算，得出全市家庭的养猫概率应该是5%左右，这样算下来，大概有2<em>23000000</em>1/2.2*0.05，即104万只猫生活在魔都。</p>
+
+    </div>
+</div>
+<div class="post-foot">
+<p>微信扫一扫</p>
+<img class="image-responsive" src="/img/wx.jpg" alt="路过的世界" />
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_developer = 1;
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+var disqus_config = function () {
+    this.page.url = "http://l.duitang.com/math/2016/07/18/number-of-cats-in-shanghai.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "魔都有多少喵星人？"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//vitrun-github-io.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                    
+
+    </div>
+    </main>
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+         <span><a href="https://github.com/vitrun"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span></a></span>
+         <span><a href="https://twitter.com/gnogle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span></a></span>
+<span class="hover_img">
+     <a href="#"><span><img src="/img/wx.jpg" alt="image" height="16" /></span></a>
+</span>
+      </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -118,7 +118,7 @@ pre > code { border: 0; padding-right: 0; padding-left: 0; }
 
 .post-list { margin-left: 0; list-style: none; }
 
-.post-list > li { margin-bottom: 30px; padding: 15px; }
+.post-list > li { margin-bottom: 5px; padding: 5px; }
 
 .post-meta { font-size: 14px; padding-right: 30px; color: #828282; }
 
@@ -131,7 +131,7 @@ pre > code { border: 0; padding-right: 0; padding-left: 0; }
 
 .post-date { text-align: right; font-size: 14px; color: grey; }
 
-.post-title { text-align: center; font-weight: 500; }
+.post-title { text-align: center; }
 
 @media screen and (max-width: 800px) { .post-title { font-size: 36px; } }
 .post-content { margin-bottom: 30px; }
@@ -145,7 +145,7 @@ pre > code { border: 0; padding-right: 0; padding-left: 0; }
 .post-content h4 { font-size: 20px; }
 
 @media screen and (max-width: 800px) { .post-content h4 { font-size: 18px; } }
-.post-foot { color: grey; text-align: center; font-weight: 700; }
+.post-foot { color: grey; text-align: center; font-weight: 600; }
 
 /** Syntax highlighting styles */
 .highlight { background: #fff; }

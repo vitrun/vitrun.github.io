@@ -5,8 +5,8 @@
     <description>while [ &#39;alive&#39; ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://l.duitang.com/</link>
     <atom:link href="http://l.duitang.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 20 Aug 2016 17:47:16 +0800</pubDate>
-    <lastBuildDate>Sat, 20 Aug 2016 17:47:16 +0800</lastBuildDate>
+    <pubDate>Sat, 03 Sep 2016 01:03:21 +0800</pubDate>
+    <lastBuildDate>Sat, 03 Sep 2016 01:03:21 +0800</lastBuildDate>
     <generator>Jekyll v3.1.6</generator>
     
       <item>
@@ -119,6 +119,67 @@
         
         
         <category>machine-learning</category>
+        
+      </item>
+    
+      <item>
+        <title>魔都有多少喵星人？</title>
+        <description>&lt;p&gt;据说曾经有位西方记者问周总理，中国有多少厕所，周总理回答有两个，男厕所和女厕所。很机智，但也回避了这个问题。今天我们不回避，来聊了聊一个类似的问题，魔都有多少只猫。&lt;/p&gt;
+
+&lt;p&gt;问题很刁钻，看着又有几分眼熟，“全世界共有多少名钢琴调音师？”，“多少只高尔夫球才能填满一辆校车？”，没错，这是谷歌等公司在面试时喜欢问的问题。&lt;/p&gt;
+
+&lt;p&gt;这么问，大概不是为了碾压智商的，即使最聪明的人，也无法准确说出这些数字。开放性问题很友善，谁都能给出答案，又绵里藏针，因为对思维品质的要求很高，要在短时间内给出有理有据的回答，相当困难。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;化整为零，各个击破&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;费米是回答这类问题的大师。1945年的7月16号，内华达的沙漠深处，美国人傲骄地试爆了第一颗原子弹，远离爆点的基地里，工程师们紧张地盯着繁忙的仪表，忙得不可开交。一旁的费米，作为“曼哈顿计划”的主要领导者，却闲庭信步，玩起了撕纸片游戏，把纸片撕碎，然后扔向天空，如是几次之后，沉吟片刻，轻描淡写的说道，爆炸当量大概相当于1万吨TNT。而精确计算后的爆炸当量是2万吨TNT，只差1倍。上一刻还在各种忙乱的大家，此刻怀着错愕的心情，转入计算内心的受伤面积，“how do you know by…”。费米淡淡一笑，并没有回答，引发了几十年后Quora和果壳上的种种猜测。&lt;/p&gt;
+
+&lt;p&gt;没有直接答案，但费米在后来的执教中留下了回答这类问题的一般性思路，Fermi-ize。&lt;/p&gt;
+
+&lt;p&gt;这类问题通常涉及我们不熟悉的领域，或在尺度上非日常生活所能感知。直接回答，困难重重，即使答得精确，也难以让人信服。因此，第一步是化整为零，各个击破（divide and conquer）。大问题分解成小问题，混沌状态分解成已知部分和未知部分。取决于对问题领域的了解程度，可能仍然摆脱不了猜测的成分。但不同的是，此时不再是一个黑盒子，而是把其中的一个量从盒子里拖了出来，有更大的概率取得更为准确的估计。当然，在这一过程中，仍然需要鼓起勇气，克服对陌生领域的恐惧，大胆地说出我们的假设和估计，并且承认结果依然可能是错的。快速发现错误，逐步迭代，比把它掩藏起来要好得多。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;用树形解构问题&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;用顺序表述的文字来描述分解和分析的过程，隐藏了子问题层级结构，面对复杂问题时便不那么直观。The Art of Insight in Science and Engineering（以下简称the art）一书中提出了树形分解法（tree presentation）。简单的问题，如“每天北京到上海的铁路客运量有多少”，可以表示为：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/cat-1.jpg&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;稍微复杂一点的，如“一张纸的体积有多少？”，可以表示为：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/cat-2.jpg&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;其中ream（令）有500张纸，-1表示倒数。一张纸的体积很难估算，分解为相对容易估算的长度，宽度，一张纸的厚度不好估计，500张好估计多了，所以，可以把厚度再次做分解。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/cat-3.jpg&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;分解到什么程度适合呢？到你对估算的准度有较大把握时即可。比如上面的纸张体积问题，也许对于有些人（如造纸厂的工人），一张纸的厚度，已经可以直接估算了。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;依靠直觉估算&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;树形分解时，对叶子节点的估算有时不得不依靠直觉。直觉的合理性一定程度上决定了整个估算的准确性，因此有必要讨论下如何提高直觉的合理性。中学课堂上教的多次测量取平均值不失为一种方式。但考虑到平均值比较容易受极值的影响。&lt;/p&gt;
+
+&lt;p&gt;the art中提出了几何平均的方式。并且，不是直接依赖直觉给出数值，而是考虑到右脑的特点，用问的方式来间接逼近。如，估算上海市的平均人口密度，从一个极限值开始，逐步向另一个权限靠近，如高于1000平米／人都是你直觉上判断不太可能的，那么记下1000这个数值。逐步向下，直到一个很小的数值，如低于50平米／人后，直觉上会说，局部地区也许会达到或低于50平米一个人，但整个市平均这么低，可能性很低，所以最终给出的平均值应该是sqrt(50*1000)，即223.6平米／人，或者说4472人／平方公里。这和2010年人口普查时的3631人／平方公里相差不远。&lt;/p&gt;
+
+&lt;p&gt;要选择合适的单位进行估算。对我的直觉来说，每人占多少平米比每平方公里多少人更容易估计，因此我选择前者为单位，而不是后者。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;蒙特卡罗方法&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;有些领域在生活中几乎不会涉及，毫无直觉可言。比如圆周率π，大概没有人能凭直觉说出它约为3.14吧。这时候，需要直觉之外的方法。同样是在“曼哈顿计划”，S.M.乌拉姆和冯·诺伊曼提出了蒙特卡罗方法。其原理是通过大量随机试验，统计样本，计算所需要的值。&lt;/p&gt;
+
+&lt;p&gt;用蒙特卡罗方法估算π可以这么做。在正方形内部画一个相切的圆，那么，它们的面积之比是π/4（π*r^2/(2*r)^2）。在这个正方形内部，随机产生10000个点，计算它们与中心点的距离，从而判断是否落在圆的内部。如果这些点均匀分布，那么圆内的点应该占到所有点的 π/4，因此将这个比值乘以4，就是π的值。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201607/cat-4.jpg&quot; alt=&quot;image-title-here&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;回到开头的问题，魔都有多少喵星人？&lt;/p&gt;
+
+&lt;p&gt;我们可以利用上面的树形分解和直觉估算法进行估计。因为问题结构比较清晰，可以在脑子里迅速画出树形图。野生的和家养的在数量上相差不大，因此总数应该是后者的两倍。上海市2300万人（常识，差不离即可，如果缺乏这个常识，则利用上面的人口密度估算）, 由于上海市的生育水平较低，同时存在大量外来人口和单身年轻人，因此家庭的平均人口应该比较低，大概2.2人一个家庭，通过对身边朋友同事的不完全采样，以及直觉估算，得出全市家庭的养猫概率应该是5%左右，这样算下来，大概有2&lt;em&gt;23000000&lt;/em&gt;1/2.2*0.05，即104万只猫生活在魔都。&lt;/p&gt;
+</description>
+        <pubDate>Mon, 18 Jul 2016 12:15:09 +0800</pubDate>
+        <link>http://l.duitang.com/math/2016/07/18/number-of-cats-in-shanghai.html</link>
+        <guid isPermaLink="true">http://l.duitang.com/math/2016/07/18/number-of-cats-in-shanghai.html</guid>
+        
+        
+        <category>math</category>
         
       </item>
     
