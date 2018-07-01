@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    
+        <title>由补码想到的</title>
+    
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="site-header" role="banner">
+    <div class="wrapper">
+    <a class="site-title" href="/">Food for Thought Expected</a>
+    </div>
+    </header>
+    <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+        <div class="post">
+    <h3 class="post-title">由补码想到的</h3>
+    <p class="post-date">2015-12-28</p>
+    <p class="post-meta"></p>
+    <div class="post-content"?>
+        <p>某君不无兴奋地跟我说他有个重大发现: java里最小负整数的绝对值等于它本身! 程序员朋友可以试试以下判断:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Math.abs(int.MIN_VALUE) == int.MIN_VALUE
+</code></pre></div></div>
+
+<p>不管怎样, 取绝对值后一定是个正数, 怎么可能等于一个负数呢.乍一看, 太二和尚摸不着头脑. 向来以精准著称计算机世界, 怎么会得出如此可笑的结论?</p>
+
+<p>其中一定有什么隐情! 凭直觉, 这应该和补码有关. 补码, 初中时代的知识, 不出意外地, 忘得差不多了, 先温故一下, 没准能知新.</p>
+
+<blockquote>
+  <p>正数的补码等于它自己, 负数的补码等于其反码+1.</p>
+</blockquote>
+
+<p>计算机是以二进制方式表示数字的, 其中负数又以补码的方式表示. 当回忆起这点的时候, 有一个问题吸引了我:为什么负数要用补码表示呢?, 这似乎是一个和1+1为什么等于2一样傻的问题, 所以当年聪明的我没敢问老师为什么. 如今智商越发下降, 类似的问题也越来越多, 然后, 像小孩子发现更好玩的玩具一样, 开头那个问题就被晾在一边了…</p>
+
+<p>大概一开始人们也没设计出补码这玩意儿, 毕竟谁会上来就找麻烦搞这么复杂的东西. 应该是很自然地第一位是符号位, 0表示正数, 1表示负数, 剩下是表示值的多少. 当然, 对于人类轻而易举想到的答案, 上帝一般是要发笑的. 这个方案会有什么问题呢? 让我们简单地假定整数是用3个比特表示的, 其表示的所有数字, 排列组合如下:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000: 0, 001: 1, 010: 2, 011: 3, 100: -0, 101: -1, 110: -2, 111: -3
+</code></pre></div></div>
+<p>这样也能work. 但很显然的不足是, 0有两种表示法, 有点浪费空间了. 还有一个更隐蔽的缺点, 用一道题来说明. 按上述规则计算下1-1, 也就是1+(-1)的结果.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>001+101=110
+</code></pre></div></div>
+
+<p>110就是-2, 显然不对. 那么如何设计才能让同时弥补上述两个缺点呢? 这时候, 补码就隆重登场了. 按补码的规则重新穷举上述排列:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000: 0, 001: 1, 010: 2, 011: 3, 100: -4, 101: -3, 110: -2, 111: -1
+</code></pre></div></div>
+
+<p>0不再重复了, 表示的空间从[-3, 3], 扩大到[-4, 3]. 而且1-1的计算, 变得简单自然, 丝般顺滑(最高位溢出):</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>001+111=000
+</code></pre></div></div>
+
+<p>因此, 不必为加法和减法设计两套计算电路! 两个看似不同, 甚至对立的逻辑, 得到了统一. 设计之巧妙, 令人叹服. 看似很傻的问题, 细细研究, 原来这般微妙, 优雅得简直像艺术品, 不得不佩服提出补码那位兄台.</p>
+
+<p>绕了个圈, 回到最开始的问题. 绝对值的计算大家都清楚: 正数, 直接返回它自己, 负数, 返回其相反数. 而java计算相反数, 就是取其补码. 仍然拿3比特的为例, 最小的负数是100(-4), 取反是011, 加1后是100, 还是-4. int类型一般是32比特, 但演算过程是一样的.</p>
+
+<p>写代码如何能少出bug? 做架构如何能更灵活适应需求的变化? 一个共同的答案是, 发现和归纳事物的规律, 通过巧妙的设计, 或更高的抽象, 减少差异性, 提高普适性.</p>
+
+<p>设计行业里流行少即是多的理念. 我想, 少不是刻意删除, 不是空洞无物. 少, 是在充分理解的前提下, 找到那个支点, 四两拨千斤, 用最小的付出, 撬动最大的收益. 九九归一, 少得下来, 一定是看透了规律, 抓住了本质.</p>
+
+<p>上面对补码的理解, 足够概括和普适了吗? 并没有.</p>
+
+<p>先试试在进制上做点延展. 小学生都会的减法, 能否统一成加法呢? 答案是肯定的. 事实上,</p>
+
+<p>两整数 A、B 用同一个正整数 M (M 称为模)去除而余数相等,则称 A、B 对 M同余,记作: A=B (MOD M). 具有同余关系的两个数为互补关系,其中一个称为另一个的补码.</p>
+
+<p>那么, 一个更加概括的理解是:减去一个数, 等于加上这个数的补码.</p>
+
+<p>数学源于生活, 让我们举个日常生活的例子. 时钟连3岁小孩都能看懂, 比11点早3小时是8点, 比11点晚9小时也是8点, 嘿嘿, 说的就是这个理, 只不过这里的模是12. 而计算机用的是二进制, 以2为模: 1-1 = 1+1 = 2+0 = 0 (2被抹掉了).</p>
+
+<p>所以下回教小孩子做减法可以这么说: 7-3 = 7+7 = 10+4 = 4. 当然, 要解释为什么10被任性地抹掉了, 也挺费劲.</p>
+
+    </div>
+</div>
+<div class="post-foot">
+<p>微信扫一扫</p>
+<img class="image-responsive" src="/img/wx.jpg" alt="路过的世界" />
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_developer = 1;
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+var disqus_config = function () {
+    this.page.url = "http://localhost:4000/computer/2015/12/28/complement.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "由补码想到的"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//vitrun-github-io.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                    
+
+    </div>
+    </main>
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+         <span><a href="https://github.com/vitrun"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span></a></span>
+         <span><a href="https://twitter.com/gnogle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span></a></span>
+<span class="hover_img">
+     <a href="#"><span><img src="/img/wx.jpg" alt="image" height="16" /></span></a>
+</span>
+      </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    
+        <title>编程界的剑气之争</title>
+    
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="site-header" role="banner">
+    <div class="wrapper">
+    <a class="site-title" href="/">Food for Thought Expected</a>
+    </div>
+    </header>
+    <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+        <div class="post">
+    <h3 class="post-title">编程界的剑气之争</h3>
+    <p class="post-date">2017-12-06</p>
+    <p class="post-meta"></p>
+    <div class="post-content"?>
+        <p><img src="/img/2017.4/kungfu.jpeg" alt="" class="img-responsive" /></p>
+
+<p>华山派曾有剑宗和气宗之分。双方你争我夺，势不两立。是权力之争，也是道统和武力之争。</p>
+
+<p>咱编程界也有指令式程序（如，面向对象）和函数式编程两派。他们的关系虽不至于剑拔弩张，却也相当紧张。表面是语言风格之争，其实是方法论之争。</p>
+
+<p>话说，当年高级语言诞生不久，场面就开始混乱了。面向对象派，又称bottom-up派，他们从底层硬件开始向上走，在不牺牲性能的前提下，逐步增加抽象层级，不断接近数学。Fortran, C/C++, Pascal, Java以及C#等等都属于这派。函数式编程派，又称top-down派，坚持从数学出发，逐渐减少抽象级别，以接近现实问题，并获得硬件支持，为了保持概念完整，牺牲了部分性能。其拥护者有Algo，Lisp，Smalltalk和Haskell等。</p>
+
+<p>双方坚持信仰，互相揭短。top-down说，哎呀，别这么快向硬件妥协，那会把选择局限在少数几个不可逆的设计中；而且，mutable太可怕了，尤其是在并发情况下，冷不防就来个意外。bottom-up派则说，别给我套这么多数学，我很难兼顾垃圾回收、函数调用……而且，性能、性能、性能，我不能牺牲任何性能；immutable太理想化了，毕竟现实世界在变，试想，如果date和random不变，调用它们有什么意义？</p>
+
+<p>计算机科学家Erik Meijer说，每当新语言出现时，他总会看看技术规范。这对他来说，也许就像喝着咖啡看报纸，轻松自如。但他在一次分享中说，有一门语言，他根本读不懂，一看就犯困，比什么安眠药都更有效。你可能会觉得那一定是门高深的语言，然而，这门语言就是很多人熟悉的Java8。他觉得lambda，method reference这些东西实在太复杂了。怎么办？每当碰到复杂的东西，他就听Leslie Lamport（图灵奖获得者）的话：“我们应该多用点数学。”</p>
+
+<p>他知道，大部分程序员都惧怕数学，就更别说如何用数学理解语言，如何在编码中应用数学。所以他上台演示，分享了《Category Theory, The essence of interface-based design》。老头子精力十足，对照着讲数学概念和函数式编程中的语言概念，很是精彩。时不时揶揄下Java：lambda演算早在1928年就提出了，Java作者Gosling一度声称没必要支持lambda，但最终还是在Java8中支持了，这是为什么？因为我们畏惧数学。但我们不应该畏惧，搞数学的人都是很聪明的，我们应该从他们身上偷师点东西。</p>
+
+<p>年迈的Java徘徊良久，终于接纳函数式编程；年轻的Scala和F#是与身俱来的多面手，两边讨好；新生的Kotlin长了一张面向对象的脸，却又兼俱一点函数式气质。争吵了近70年，两派终于开始弥合了。</p>
+
+<p>纵是阳春白雪， 也有下里巴人的时候。多核时代下并发需求的普及，以及日益复杂的软件架构，使得指令式编程力不从心。我们需要更有力的武器。Brian Beckman说，我们将无可避免地接触monad，因为函数式编程正迎面呼啸而来。</p>
+
+<p>这段历史似曾相识，关于剑气宗的高下，岳不群有段论述：</p>
+
+<blockquote>
+  <p>剑宗功夫易于速成，见效极快。大家都练十年，定是剑宗占上风；各练二十年，那是各擅胜场，难分上下；要到二十年之后，练气宗功夫的才渐渐的越来越强；到得三十年时，练剑宗功夫的便再也不能望气宗之项背了。</p>
+</blockquote>
+
+<p>但我们是文明的现代人，何必争个你死我活。我们要融合，要扬长避短。总有一天，犹太教、基督教和伊斯兰教的朋友们会在他们共同的圣地——耶路撒冷，愉快地生活的，是不是？哦弥陀佛！</p>
+
+<p>有个问题摆在所有程序员面前：如何提高软件质量？这是个可以写好几本书的话题。我敢打包票的是，这些书都会讲code review、unit test、 QA……其中单元测试（或者包括集成测试）的争议最大。写测试确实费时费力，又不一定讨好。我认识的人中就有坚决肯定和坚决否定两种极端。我认为这是个性价比的问题，如果能自动生成单元测试就好了。于是，一度想用AI搞个这样的项目（事实是确实有人在研究这个，比如randoop，曾测出了jdk的bug）。但转念一想，又打住了。</p>
+
+<blockquote>
+  <p>People are always more willing to work harder than they have to than to work smarter than they’re able to.</p>
+</blockquote>
+
+<p>质量的关键并不在测试之类的防御性措施上。测试是有意义的，但就像公路两边的防护栏，能防止你掉下悬崖，却并不能把你带向目的地。我们应该回到业务本身，琢磨如何更优雅地设计和实现它，这是科学、艺术，是编程之美，也是我一直提倡design review的原因。但关于设计以及架构，我发现的更多是其中的“艺术”成分，也就是依靠经验和模仿习得的那些。是否有完整的章法和可言传的套路呢？我们需要更多科学来指导代码的设计和组织。与其说我们需要函数式编程，不如说我们需要更高的视角看待编程。</p>
+
+<p>带着这个疑问，我撞见了category theory，中文叫范畴论，不知道这个鬼见了都犯愁的理论，能多大程度解决问题。但我愿意一试，没准某一天，我能以气御剑？</p>
+
+<p>注：上面都是废话，本文重点是以下链接：</p>
+
+<p>REF.</p>
+<ul>
+  <li>https://www.infoq.com/presentations/Simple-Made-Easy</li>
+  <li>https://www.youtube.com/watch?v=ZhuHCtR3xq8</li>
+  <li>https://www.youtube.com/watch?v=JMP6gI5mLHc</li>
+  <li>https://ykode.id/making-sense-of-category-theory-6f901e39fa3c</li>
+  <li>https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/</li>
+</ul>
+
+    </div>
+</div>
+<div class="post-foot">
+<p>微信扫一扫</p>
+<img class="image-responsive" src="/img/wx.jpg" alt="路过的世界" />
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_developer = 1;
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+var disqus_config = function () {
+    this.page.url = "http://localhost:4000/computer/2017/12/06/fp-vs-op.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "编程界的剑气之争"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//vitrun-github-io.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                    
+
+    </div>
+    </main>
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+         <span><a href="https://github.com/vitrun"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span></a></span>
+         <span><a href="https://twitter.com/gnogle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span></a></span>
+<span class="hover_img">
+     <a href="#"><span><img src="/img/wx.jpg" alt="image" height="16" /></span></a>
+</span>
+      </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
