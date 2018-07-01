@@ -5,8 +5,8 @@
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 01 Jul 2018 14:02:10 +0800</pubDate>
-    <lastBuildDate>Sun, 01 Jul 2018 14:02:10 +0800</lastBuildDate>
+    <pubDate>Sun, 01 Jul 2018 14:20:04 +0800</pubDate>
+    <lastBuildDate>Sun, 01 Jul 2018 14:20:04 +0800</lastBuildDate>
     <generator>Jekyll v3.7.3</generator>
     
       <item>
@@ -383,7 +383,7 @@
 
 &lt;p&gt;不光是创业项目，还可以是想法、产品，甚至是行业。孟庆祥和吴军的课里分别提出了他们的模型，我觉得还蛮受用，这里做个简单的整理。&lt;/p&gt;
 
-&lt;p&gt;** 信息电路图 **&lt;/p&gt;
+&lt;h4 id=&quot;信息电路图&quot;&gt;信息电路图&lt;/h4&gt;
 
 &lt;p&gt;商场和门店的本质作用是展示信息。这可能是整节课下来我印象最为深刻的观点。商场和门店都太常见了，很少有人去思考“卖东西”之外的更深层次的作用。另外，这个描述具有一定抽象程度，能够把很多看似没有关系的东西联系在一起。原本需要case by case分析的案例，可以投射到信息维度，进而用这个模型分析。&lt;/p&gt;
 
@@ -403,7 +403,7 @@
 
 &lt;p&gt;链家曾做过一次调查，全国的门店租金平均下来相当于每个业务员每个月多支出500块钱。显然和线上模式对比没有任何优势，但这个额外的信息成本给它们带来了线上无法实现的收益：它可以带客户看房，现场检验，当面交流，提供专业咨询服务甚至是金融服务。越是重大的决策，对信息深度的要求越高，也就越难被线上模式颠覆。&lt;/p&gt;
 
-&lt;p&gt;** 黄赌毒先行 **&lt;/p&gt;
+&lt;h4 id=&quot;黄赌毒先行&quot;&gt;黄赌毒先行&lt;/h4&gt;
 
 &lt;p&gt;这是吴军老师的模型。黄赌毒是人类社会极力避免但可能永远无法消灭的东西，因为它们根植于人性的底层，反映了人类动物性的一面。一来需求强烈，二来见不得光，使得这些领域的从业者非常愿意去尝试新事物，寻求更大的利益或更隐蔽的方式。&lt;/p&gt;
 
