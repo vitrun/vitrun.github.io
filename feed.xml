@@ -5,15 +5,13 @@
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 08 Jul 2018 14:48:13 +0800</pubDate>
-    <lastBuildDate>Sun, 08 Jul 2018 14:48:13 +0800</lastBuildDate>
+    <pubDate>Sun, 08 Jul 2018 14:51:01 +0800</pubDate>
+    <lastBuildDate>Sun, 08 Jul 2018 14:51:01 +0800</lastBuildDate>
     <generator>Jekyll v3.7.3</generator>
     
       <item>
         <title>默克尔树（Merkle Tree）</title>
-        <description>&lt;h3 id=&quot;前言&quot;&gt;前言&lt;/h3&gt;
-
-&lt;p&gt;默克尔树（Merkle Tree）的定义很简单，却是区块链技术领域的重要概念。它使得大规模的分布式区块网络成为可能，也让普通机器可以成为网络节点。&lt;/p&gt;
+        <description>&lt;p&gt;默克尔树（Merkle Tree）的定义很简单，却是区块链技术领域的重要概念。它使得大规模的分布式区块网络成为可能，也让普通机器可以成为网络节点。&lt;/p&gt;
 
 &lt;h3 id=&quot;什么是默克尔树&quot;&gt;什么是默克尔树&lt;/h3&gt;
 &lt;p&gt;数据结构上，它是一种特殊的二叉树(也可以是多叉树)，设计如下：&lt;/p&gt;
