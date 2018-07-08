@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    
+        <title>默克尔树（Merkle Tree）</title>
+    
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="site-header" role="banner">
+    <div class="wrapper">
+    <a class="site-title" href="/">Food for Thought Expected</a>
+    </div>
+    </header>
+    <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+        <div class="post">
+    <h3 class="post-title">默克尔树（Merkle Tree）</h3>
+    <p class="post-date">2018-07-08</p>
+    <p class="post-meta"></p>
+    <div class="post-content"?>
+        <h3 id="前言">前言</h3>
+
+<p>默克尔树（Merkle Tree）的定义很简单，却是区块链技术领域的重要概念。它使得大规模的分布式区块网络成为可能，也让普通机器可以成为网络节点。</p>
+
+<h3 id="什么是默克尔树">什么是默克尔树</h3>
+<p>数据结构上，它是一种特殊的二叉树(也可以是多叉树)，设计如下：</p>
+<ul>
+  <li>叶子节点的值是数据的哈希值。</li>
+  <li>非叶子节点的值是其所有子节点的哈希值。</li>
+</ul>
+
+<p><img src="/img/2018.3/merkle_tree.png" alt="" class="img-responsive" /></p>
+
+<p>如上图所示，</p>
+<ul>
+  <li>hash代表哈希算法，如MD5，SHA系列等，把任意长度的数据转换为固定长度的哈希值。</li>
+  <li>L1, L2等是叶子节点对应的数据，直接作为哈希算法的输入。</li>
+  <li>非叶子节点的哈希输入为所有子节点哈希串的拼接。</li>
+  <li>最终形成唯一的根节点，称为Merkle Root.</li>
+</ul>
+
+<p>上图叶子节点数为4，恰好每一层都有完整输入。如果叶子节点数量不是2的次方，即不能形成满二叉树，怎么处理呢？</p>
+
+<p>有多种处理“孤立”叶子节点的方式。一种方案是不断重复最后一个节点，直到整体数量达到2^n
+个。这种方案的想法比较直接，缺点也很明显，多做了很多无用功。比较好的方法是，把“孤立”节点提升到更高层次中。具体提到哪一层，要看叶子节点的数量情况，下图展示了5-7个叶子节点的情况：</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>     ┌───┴──┐       ┌────┴───┐         ┌─────┴─────┐
+  ┌──┴──┐   │    ┌──┴──┐     │      ┌──┴──┐     ┌──┴──┐
+┌─┴─┐ ┌─┴─┐ │  ┌─┴─┐ ┌─┴─┐ ┌─┴─┐  ┌─┴─┐ ┌─┴─┐ ┌─┴─┐   │
+      (5)              (6)                  (7)
+</code></pre></div></div>
+
+<h3 id="默克尔树的特性">默克尔树的特性</h3>
+<ul>
+  <li>
+    <p><strong>对变动敏感</strong>。任何细微的变动都会引发叶子节点哈希值的变化，依次向上传导，最终导致根节点的变动。因此，像普通哈希一样，可以用来验证数据拷贝的一致性。</p>
+  </li>
+  <li>
+    <p><strong>快速定位差异</strong>。二叉树查询的时间复杂度为O(logN)，沿着根节点向下对比，可以非常高效地确定具体是哪个（些）叶子的数据有差异。</p>
+  </li>
+  <li>
+    <p><strong>默克尔证明</strong>。如图，要证明数据d3在数据集中，只要知道节点c,i,
+n（白色节点）的值，即可通过重新计算节点d,j,
+m的值，进而计算根节点的值，再和给定的根节点对比，判断d3是否属于该数据集。不需要拿到所有数据，即可完成此验证。</p>
+  </li>
+</ul>
+
+<p><img src="/img/2018.3/merkle_proof.jpeg" alt="" class="img-responsive" /></p>
+
+<h3 id="默克尔树的应用">默克尔树的应用</h3>
+
+<h4 id="p2p下载">P2P下载</h4>
+<p>在p2p下载出现之前，整个文件的数据都从一个中心节点上获取。这个中心节点的资源和稳定性常常成为瓶颈点，而一旦下载异常，整体文件都需要重新下载。p2p
+网络出现后，一个大文件被分割成许多小块，编号后分布在不同的资源节点上，下载操作同时从多个节点上进行，每一块都有对应的哈希值，用于下载后的检验。就算一个块出错，只需要重新下载这小块就行，而不需要重新下载整个文件。</p>
+
+<p>问题是如何确保每一块的哈希值本身是正确的呢，在p2p
+网络中，任何人都可以成为提供下载资源的节点，无法确保数据本身或其哈希值没被恶意修改。一种方式是由可靠的权威节点提供这些小块数据的哈希值，可以从做生意节点下载资源，但只从权威节点下载哈希值。这当然可行，对权威节点的依赖还是太大了。</p>
+
+<p>默克尔树能解决这个问题。把小块数据作为叶子节点，构建默克尔树，只要根节点的哈希值从可信节点下载，剩下所有数据和节点哈希值都可以从任意节点下载。各个分支的值可以对其子树进行检测，根的值则可以对整个默克尔树进行检测。这样就确保了整个大文件的完整性，而各个分支又可以独立处理。</p>
+
+<h4 id="比特币交易验证">比特币交易验证</h4>
+
+<p>在区块头是不包含交易（Transaction）信息的，其中关于交易的数据只是这个区块内的交易生成的默克尔树的根节点。
+<img src="/img/2018.3/blockchain.jpeg" alt="" class="img-responsive" /></p>
+
+<p>而比特币网络的轻量客户端（如钱包）不存储完整的区块数据，仅下载区块头，就能验证某笔交易是否被打包到链上。这是如何做到的呢？客户端验证步骤如下：</p>
+<ul>
+  <li>首先对交易数据进行哈希。</li>
+  <li>然后咨询完整节点：这个哈希值对应的交易是否在第index
+个区块中？</li>
+  <li>完整节点的区块不会直接返回在或不在的结论，而是返回一个<em>默克尔证明</em>（重新计算根节点所需的路径）。</li>
+  <li>验证这个”默克尔证明”，即独立计算根节点的哈希值。</li>
+  <li>对比区块头中的哈希值与计算结果是否相同。</li>
+</ul>
+
+<p>对于n笔交易而言，路径节点数只要log2(n)，无论是查找还是数据传输都是一个巨大的效率提升。不妨试算一下，假设革个区块包含32768笔交易，每笔交易占256字节，则所有交易大小为8M
+，而路径数为15，每个哈希占32字节，则路径大小仅为480字节，差距高达5个数量级。</p>
+
+<p>值得指出的是，比特币网络的任何节点都不会也没必要相信其它节点，节点只能依赖事先约定的协议独立地验证来自网络的数据。这个验证的最终基础正是数学。用张首晟的话说：</p>
+<blockquote>
+  <p>In math, we trust.</p>
+</blockquote>
+
+<p>当然，默克尔树早在比特币之前就已经广泛使用了，分布式代码版本工具Git，以及开源数据库Apache Cassandra均有使用。</p>
+
+<h3 id="默克尔树的实现">默克尔树的实现</h3>
+<p>为了加深理解，用python实现了简单的默克尔树，包含构建、验证和查找功能。数据结构本身比较清楚明了，关键代码做了注释，这里不再讨论。可直接到<a href="https://github.com/vitrun/pok/tree/master/merkletree">github</a>阅读源码。</p>
+
+<h3 id="参考文档">参考文档</h3>
+<ul>
+  <li>https://github.com/adjoint-io/merkle-tree</li>
+  <li>https://en.wikipedia.org/wiki/Merkle_tree</li>
+  <li>https://brilliant.org/wiki/merkle-tree/</li>
+  <li>https://juejin.im/entry/5a2e1135f265da432f311168</li>
+</ul>
+
+    </div>
+</div>
+<div class="post-foot">
+<p>微信扫一扫</p>
+<img class="image-responsive" src="/img/wx.jpg" alt="路过的世界" />
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_developer = 1;
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+var disqus_config = function () {
+    this.page.url = "http://localhost:4000/computer/2018/07/08/merkle-tree.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "默克尔树（Merkle Tree）"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//vitrun-github-io.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                    
+
+    </div>
+    </main>
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+         <span><a href="/yzr.html"><span class="icon icon--me"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20 21.193l-.003.807h-19.993l-.004-.833c-.009-2.224.088-3.495 2.647-4.086 2.805-.647 5.573-1.227 4.242-3.682-3.943-7.275-1.123-11.399 3.111-11.399 4.153 0 7.043 3.971 3.11 11.398-1.292 2.44 1.375 3.02 4.242 3.682 2.57.594 2.657 1.873 2.648 4.113zm4-17.193h-7v2h7v-2zm0 4h-7v2h7v-2zm0 4h-7v2h7v-2z"/></svg>
+         <span><a href="https://github.com/vitrun"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span></a></span>
+         <span><a href="https://twitter.com/gnogle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+         <span><a href="/feed.xml"><span class="icon icon--rss"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-1.29 14.646c0 .748-.607 1.354-1.354 1.354-.749 0-1.356-.606-1.356-1.354 0-.747.607-1.353 1.355-1.353.748.001 1.355.606 1.355 1.353zm-2.71-5.237v2.004c2.521.025 4.567 2.068 4.592 4.587h2.008c-.026-3.629-2.965-6.566-6.6-6.591zm0-1.404c4.407.02 7.98 3.581 7.993 7.995h2.007c-.012-5.513-4.48-9.981-10-10v2.005z"/></svg>
+</span></a></span>
+<span class="hover_img">
+     <a href="#"><span><img src="/img/wx.jpg" alt="image" height="16" /></span></a>
+</span>
+      </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

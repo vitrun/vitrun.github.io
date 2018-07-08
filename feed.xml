@@ -5,9 +5,115 @@
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sat, 07 Jul 2018 13:13:29 +0800</pubDate>
-    <lastBuildDate>Sat, 07 Jul 2018 13:13:29 +0800</lastBuildDate>
+    <pubDate>Sun, 08 Jul 2018 14:48:13 +0800</pubDate>
+    <lastBuildDate>Sun, 08 Jul 2018 14:48:13 +0800</lastBuildDate>
     <generator>Jekyll v3.7.3</generator>
+    
+      <item>
+        <title>默克尔树（Merkle Tree）</title>
+        <description>&lt;h3 id=&quot;前言&quot;&gt;前言&lt;/h3&gt;
+
+&lt;p&gt;默克尔树（Merkle Tree）的定义很简单，却是区块链技术领域的重要概念。它使得大规模的分布式区块网络成为可能，也让普通机器可以成为网络节点。&lt;/p&gt;
+
+&lt;h3 id=&quot;什么是默克尔树&quot;&gt;什么是默克尔树&lt;/h3&gt;
+&lt;p&gt;数据结构上，它是一种特殊的二叉树(也可以是多叉树)，设计如下：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;叶子节点的值是数据的哈希值。&lt;/li&gt;
+  &lt;li&gt;非叶子节点的值是其所有子节点的哈希值。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/2018.3/merkle_tree.png&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;如上图所示，&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;hash代表哈希算法，如MD5，SHA系列等，把任意长度的数据转换为固定长度的哈希值。&lt;/li&gt;
+  &lt;li&gt;L1, L2等是叶子节点对应的数据，直接作为哈希算法的输入。&lt;/li&gt;
+  &lt;li&gt;非叶子节点的哈希输入为所有子节点哈希串的拼接。&lt;/li&gt;
+  &lt;li&gt;最终形成唯一的根节点，称为Merkle Root.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;上图叶子节点数为4，恰好每一层都有完整输入。如果叶子节点数量不是2的次方，即不能形成满二叉树，怎么处理呢？&lt;/p&gt;
+
+&lt;p&gt;有多种处理“孤立”叶子节点的方式。一种方案是不断重复最后一个节点，直到整体数量达到2^n
+个。这种方案的想法比较直接，缺点也很明显，多做了很多无用功。比较好的方法是，把“孤立”节点提升到更高层次中。具体提到哪一层，要看叶子节点的数量情况，下图展示了5-7个叶子节点的情况：&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;     ┌───┴──┐       ┌────┴───┐         ┌─────┴─────┐
+  ┌──┴──┐   │    ┌──┴──┐     │      ┌──┴──┐     ┌──┴──┐
+┌─┴─┐ ┌─┴─┐ │  ┌─┴─┐ ┌─┴─┐ ┌─┴─┐  ┌─┴─┐ ┌─┴─┐ ┌─┴─┐   │
+      (5)              (6)                  (7)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;默克尔树的特性&quot;&gt;默克尔树的特性&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;对变动敏感&lt;/strong&gt;。任何细微的变动都会引发叶子节点哈希值的变化，依次向上传导，最终导致根节点的变动。因此，像普通哈希一样，可以用来验证数据拷贝的一致性。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;快速定位差异&lt;/strong&gt;。二叉树查询的时间复杂度为O(logN)，沿着根节点向下对比，可以非常高效地确定具体是哪个（些）叶子的数据有差异。&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;默克尔证明&lt;/strong&gt;。如图，要证明数据d3在数据集中，只要知道节点c,i,
+n（白色节点）的值，即可通过重新计算节点d,j,
+m的值，进而计算根节点的值，再和给定的根节点对比，判断d3是否属于该数据集。不需要拿到所有数据，即可完成此验证。&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/2018.3/merkle_proof.jpeg&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;默克尔树的应用&quot;&gt;默克尔树的应用&lt;/h3&gt;
+
+&lt;h4 id=&quot;p2p下载&quot;&gt;P2P下载&lt;/h4&gt;
+&lt;p&gt;在p2p下载出现之前，整个文件的数据都从一个中心节点上获取。这个中心节点的资源和稳定性常常成为瓶颈点，而一旦下载异常，整体文件都需要重新下载。p2p
+网络出现后，一个大文件被分割成许多小块，编号后分布在不同的资源节点上，下载操作同时从多个节点上进行，每一块都有对应的哈希值，用于下载后的检验。就算一个块出错，只需要重新下载这小块就行，而不需要重新下载整个文件。&lt;/p&gt;
+
+&lt;p&gt;问题是如何确保每一块的哈希值本身是正确的呢，在p2p
+网络中，任何人都可以成为提供下载资源的节点，无法确保数据本身或其哈希值没被恶意修改。一种方式是由可靠的权威节点提供这些小块数据的哈希值，可以从做生意节点下载资源，但只从权威节点下载哈希值。这当然可行，对权威节点的依赖还是太大了。&lt;/p&gt;
+
+&lt;p&gt;默克尔树能解决这个问题。把小块数据作为叶子节点，构建默克尔树，只要根节点的哈希值从可信节点下载，剩下所有数据和节点哈希值都可以从任意节点下载。各个分支的值可以对其子树进行检测，根的值则可以对整个默克尔树进行检测。这样就确保了整个大文件的完整性，而各个分支又可以独立处理。&lt;/p&gt;
+
+&lt;h4 id=&quot;比特币交易验证&quot;&gt;比特币交易验证&lt;/h4&gt;
+
+&lt;p&gt;在区块头是不包含交易（Transaction）信息的，其中关于交易的数据只是这个区块内的交易生成的默克尔树的根节点。
+&lt;img src=&quot;/img/2018.3/blockchain.jpeg&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;而比特币网络的轻量客户端（如钱包）不存储完整的区块数据，仅下载区块头，就能验证某笔交易是否被打包到链上。这是如何做到的呢？客户端验证步骤如下：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;首先对交易数据进行哈希。&lt;/li&gt;
+  &lt;li&gt;然后咨询完整节点：这个哈希值对应的交易是否在第index
+个区块中？&lt;/li&gt;
+  &lt;li&gt;完整节点的区块不会直接返回在或不在的结论，而是返回一个&lt;em&gt;默克尔证明&lt;/em&gt;（重新计算根节点所需的路径）。&lt;/li&gt;
+  &lt;li&gt;验证这个”默克尔证明”，即独立计算根节点的哈希值。&lt;/li&gt;
+  &lt;li&gt;对比区块头中的哈希值与计算结果是否相同。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;对于n笔交易而言，路径节点数只要log2(n)，无论是查找还是数据传输都是一个巨大的效率提升。不妨试算一下，假设革个区块包含32768笔交易，每笔交易占256字节，则所有交易大小为8M
+，而路径数为15，每个哈希占32字节，则路径大小仅为480字节，差距高达5个数量级。&lt;/p&gt;
+
+&lt;p&gt;值得指出的是，比特币网络的任何节点都不会也没必要相信其它节点，节点只能依赖事先约定的协议独立地验证来自网络的数据。这个验证的最终基础正是数学。用张首晟的话说：&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;In math, we trust.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;当然，默克尔树早在比特币之前就已经广泛使用了，分布式代码版本工具Git，以及开源数据库Apache Cassandra均有使用。&lt;/p&gt;
+
+&lt;h3 id=&quot;默克尔树的实现&quot;&gt;默克尔树的实现&lt;/h3&gt;
+&lt;p&gt;为了加深理解，用python实现了简单的默克尔树，包含构建、验证和查找功能。数据结构本身比较清楚明了，关键代码做了注释，这里不再讨论。可直接到&lt;a href=&quot;https://github.com/vitrun/pok/tree/master/merkletree&quot;&gt;github&lt;/a&gt;阅读源码。&lt;/p&gt;
+
+&lt;h3 id=&quot;参考文档&quot;&gt;参考文档&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;https://github.com/adjoint-io/merkle-tree&lt;/li&gt;
+  &lt;li&gt;https://en.wikipedia.org/wiki/Merkle_tree&lt;/li&gt;
+  &lt;li&gt;https://brilliant.org/wiki/merkle-tree/&lt;/li&gt;
+  &lt;li&gt;https://juejin.im/entry/5a2e1135f265da432f311168&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Sun, 08 Jul 2018 14:30:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2018/07/08/merkle-tree.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2018/07/08/merkle-tree.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
     
       <item>
         <title>编程界的剑气之争</title>
@@ -509,89 +615,6 @@ Xn表示第n代的人口相对于地球能承受的最大人口数N的比例 。
         <pubDate>Wed, 19 Oct 2016 12:15:09 +0800</pubDate>
         <link>http://localhost:4000/thinking/2016/10/19/paper-reading.html</link>
         <guid isPermaLink="true">http://localhost:4000/thinking/2016/10/19/paper-reading.html</guid>
-        
-        
-        <category>thinking</category>
-        
-      </item>
-    
-      <item>
-        <title>蚂蚁与互联网</title>
-        <description>&lt;p&gt;&lt;img src=&quot;/img/201610/ant.jpeg&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;要不要出去找吃的，出去多少只，对蚂蚁而言，这是必须面对的问题。&lt;/p&gt;
-
-&lt;p&gt;出去多了，有收获还好，没收获的话，浪费“蚁力”不说，江湖险恶，还有丧命的风险。&lt;/p&gt;
-
-&lt;p&gt;出去少了，虽不至于“不知有汉，无论魏晋”，但错过食物，减少收成，却是很有可能的。&lt;/p&gt;
-
-&lt;p&gt;虽简单，却是生死攸关的问题。生存是第一需求，但食物越多并不完全等价于存活得越久。后者要求的是性价比，是消耗较少资源，收集较多食物。&lt;/p&gt;
-
-&lt;p&gt;蚂蚁们给出了自己的答案。&lt;/p&gt;
-
-&lt;p&gt;这个答案不是“蚁后坐阵指挥，决胜千里”。蚁后虽有王后的名头，却不过是一只专门负责下蛋的蚂蚁，并没有什么“政治”权力。况且，也没有蚂蚁坐在门口清点和汇报布阵情况供它决策。&lt;/p&gt;
-
-&lt;p&gt;每当有蚂蚁带着食物载誉而归时，便会在洞口放下食物，和守候在那里的蚂蚁碰一碰那两根“小天线”。等待的蚂蚁是否出发，踏上冒险之旅，取决于这种交流的次数和间隔的时长。&lt;/p&gt;
-
-&lt;p&gt;一旦出发，不找到点什么，蚂蚁是不会轻易回家的。因此，周围的食物越多，回来得越频繁，就有越多的蚂蚁集结出发；食物越少，回来的次数也少，家里的蚂蚁就自觉省点力，不出去白忙活了。当然，回来的少，也可能是壮烈牺牲了，说明外面危险，还是按兵不动的好。&lt;/p&gt;
-
-&lt;p&gt;没有统筹兼顾，没有上传下达，个体的机械和无知，却构成了整体的灵活与英明。&lt;/p&gt;
-
-&lt;p&gt;这种方式，在蚂蚁界已经运行了几百万年，恐龙在的时候，它们在；恐龙不在的时候，它们依然在。人类在的时候，它们在；人类不在的时候，诅咒它们也不在……&lt;/p&gt;
-
-&lt;p&gt;你以为这是在讲蚂蚁觅食，但其实是在讲 TCP通信。TCP协议能够流行、成为整个互联网的基石，很重要的一点是它解决了之前一直存在的“拥塞崩溃”问题。解决此问题的一个措施是“拥塞控制”：&lt;/p&gt;
-
-&lt;p&gt;拥塞控制是一种用来调整传输控制协议（TCP）连接单次发送的分组数量（单次发送量，在英文文献和程序代码中常叫做cwnd）的算法。它通过增减单次发送量逐步调整，使之逼近当前网络的承载量。&lt;/p&gt;
-
-&lt;p&gt;我们要在事先不知道带宽，或带宽一直变化的情况下，完成通信又避免拥塞。&lt;/p&gt;
-
-&lt;p&gt;TCP发送数据包，好比蚂蚁外出觅食；返回确认符，好比蚂蚁带回食物。很快返回大量确认符，意味着带宽充足，允许发送更多数据包，好比大量蚂蚁回巢，表明食物充足，要多派人手出去抢运。反之亦然。如果根本不返回，发送和外出也将停止，对应TCP的超时。&lt;/p&gt;
-
-&lt;p&gt;第一只外出的蚂蚁是如何决定出去而不是留下呢？这其实不难，一开始总得有一批侦查员，先出去打探打探，为后续行动收集情报。因为只是侦查，所以数量不用也不宜太多。对应的是TCP控制拥塞的另一招——慢启动，服务器通过 TCP 连接初始化一个新的单次发送量 (cwnd)，将其值设置为一个系统设定的保守值。每次往返都令其翻倍(指数式增长)，进而迅速向有效带宽靠拢。&lt;/p&gt;
-
-&lt;p&gt;一个优秀的分布式系统是没有中央节点的分布式系统。神奇的自然选择造就了蚁群，这个优秀的分布式系统。&lt;/p&gt;
-
-&lt;p&gt;争气的是，我们并没有“抄袭”蚂蚁，而是独立发现这一算法，并应用在TCP协议中。&lt;/p&gt;
-
-&lt;p&gt;1988 年，Van Jacobson 和 Michael J. Karels 撰文描述了解决这个问题的几种算法：慢启动、拥塞预防、快速重发和快速恢复。这四种算法很快被写进了 TCP 规范。事实上，正是由于这几种算法加入TCP，才让因特网在 20世纪80年代末到 90年代初流量暴增时免于大崩溃。&lt;/p&gt;
-
-&lt;p&gt;2005年，Vint Cerf和Bob Kahn获得小布什颁发的“总统自由勋章”。向两位大神致敬，也向发明TCP/IP的Vint Cerf（被誉为“互联网之父”）和Bob Kahn致敬。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/img/201610/award.webp&quot; alt=&quot;2005年，Vint Cerf和Bob Kahn获得小布什颁发的“总统自由勋章”&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;对了，我们知道蚂蚁懂这个算法，这事本身也是很牛逼的。这是斯坦福大学教授Deborah Gordon长达30年的研究成果。没错，我们是独立提出了蚂蚁觅食的算法，但我们有什么信心能独立提出它们的更多算法？&lt;/p&gt;
-
-&lt;p&gt;搜“Harvester ants use interactions to regulate forager activation and availability”，看教授的研究论文。&lt;/p&gt;
-
-&lt;h4 id=&quot;参考资料&quot;&gt;参考资料&lt;/h4&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;http://news.stanford.edu/news/2013/may/ants-forage-evolve-051413.html&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;http://news.stanford.edu/news/2012/august/ants-mimic-internet-082312.html&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;https://priceonomics.com/the-independent-discovery-of-tcpip-by-ants/&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;https://www.wired.com/2013/07/what-ants-yes-know-that-we-dont-the-future-of-networking/&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;https://zh.wikipedia.org/wiki/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;https://www.ted.com/talks/deborah_gordon_digs_ants#t-965306&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;High Performance Browser Networking&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-</description>
-        <pubDate>Sat, 15 Oct 2016 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/thinking/2016/10/15/ant-www.html</link>
-        <guid isPermaLink="true">http://localhost:4000/thinking/2016/10/15/ant-www.html</guid>
         
         
         <category>thinking</category>
