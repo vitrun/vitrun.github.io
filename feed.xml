@@ -5,9 +5,299 @@
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 26 Nov 2018 22:52:53 +0800</pubDate>
-    <lastBuildDate>Mon, 26 Nov 2018 22:52:53 +0800</lastBuildDate>
+    <pubDate>Mon, 06 Jan 2020 15:17:38 +0800</pubDate>
+    <lastBuildDate>Mon, 06 Jan 2020 15:17:38 +0800</lastBuildDate>
     <generator>Jekyll v3.7.3</generator>
+    
+      <item>
+        <title>协程在手，并发不愁</title>
+        <description>&lt;ul&gt;
+  &lt;li&gt;概念与实现&lt;/li&gt;
+  &lt;li&gt;协程的使用&lt;/li&gt;
+  &lt;li&gt;vs线程进程&lt;/li&gt;
+  &lt;li&gt;协程的优点&lt;/li&gt;
+  &lt;li&gt;kotlin的协程&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;(2019.09.20在团队的分享)&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;概念与实现&quot;&gt;概念与实现&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;运行在单线程中的&lt;strong&gt;并发&lt;/strong&gt;代码段，或：&lt;/li&gt;
+  &lt;li&gt;一种&lt;strong&gt;用户态&lt;/strong&gt;的轻量级线程&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;bonus:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;并发 vs 并行&lt;/li&gt;
+  &lt;li&gt;用户态 vs 内核态&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;概念与实现-1&quot;&gt;概念与实现&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;属性&lt;/strong&gt;: 拥有自己的&lt;strong&gt;寄存器上下文&lt;/strong&gt;和&lt;strong&gt;栈&lt;/strong&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;行为&lt;/strong&gt;: 切换时，保存当前状态或恢复之前状态&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;因此：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;可不必与特定的线程绑定，可以在一个线程中暂停，并在另一个线程中恢复&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;bonus: 对比尾递归&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;概念与实现-2&quot;&gt;概念与实现&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;有栈协程(Stackful)：有自己的调用栈&lt;/li&gt;
+  &lt;li&gt;如&lt;code class=&quot;highlighter-rouge&quot;&gt;Golang&lt;/code&gt;，栈内存可以根据需要进行扩容和缩容，最小一般为内存页长 4KB。&lt;/li&gt;
+  &lt;li&gt;无栈协程(Stackless)：没有自己的调用栈&lt;/li&gt;
+  &lt;li&gt;如&lt;code class=&quot;highlighter-rouge&quot;&gt;Python&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;Kotlin&lt;/code&gt;。上下文通过CPS(continuation-passing-style)保存，在&lt;code class=&quot;highlighter-rouge&quot;&gt;Kotlin&lt;/code&gt;中，就是一个&lt;a href=&quot;https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines.experimental/-continuation/index.html&quot;&gt;Continuation&lt;/a&gt;类，可想像成&lt;code class=&quot;highlighter-rouge&quot;&gt;Callback&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;bonus: &lt;code class=&quot;highlighter-rouge&quot;&gt;CPS&lt;/code&gt; vs &lt;code class=&quot;highlighter-rouge&quot;&gt;Direct Style&lt;/code&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;协程的使用&quot;&gt;协程的使用&lt;/h1&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python&lt;/code&gt; 版&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;consumer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;bone&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt;  &lt;span class=&quot;c&quot;&gt;# 接收producer的传参，执行后面代码，直到再次碰到yield后返回producer&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[31;1m[consumer] &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[0m 消费 &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bone&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;# 发None启动消费者&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[32;1m[producer]&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[0m 生产 &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;    &lt;span class=&quot;c&quot;&gt;# 暂停producer，并切换到consumer&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;bonus: 对比子程序&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;协程的使用-1&quot;&gt;协程的使用&lt;/h1&gt;
+
+&lt;p&gt;单步调试，注意&lt;code class=&quot;highlighter-rouge&quot;&gt;send&lt;/code&gt;(1)之后跳到了&lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt;(2)：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201909/coroutine_trace.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;协程的使用-2&quot;&gt;协程的使用&lt;/h1&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;kotlin&lt;/code&gt;版：&lt;a href=&quot;https://pl.kotl.in/7s9CC8kSa&quot;&gt;playgroud&lt;/a&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;py&quot;&gt;channel&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;gt;()&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;[producer] 生产 $x&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;[consumer] 消费 ${channel.receive()}&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;bonus: 为何&lt;code class=&quot;highlighter-rouge&quot;&gt;python&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;kotlin&lt;/code&gt;版输出不同？&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;协程的使用-3&quot;&gt;协程的使用&lt;/h1&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201909/pipe.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;协程的使用-4&quot;&gt;协程的使用&lt;/h1&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;子程序就是协程的一种特例。 —— Donald Knuth&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;或者说，协程是子程序的泛化。&lt;/p&gt;
+
+&lt;h3 id=&quot;为什么&quot;&gt;&lt;em&gt;为什么?&lt;/em&gt;&lt;/h3&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;vs-线程进程&quot;&gt;vs 线程、进程&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;进程&lt;/strong&gt; 应用程序的启动实例，有代码和打开的文件资源、数据资源、独立的内存空间。最小的资源管理单元。&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;线程&lt;/strong&gt; 从属于进程，有自己的栈空间。最小的执行单元。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;表面看它们是语言特性，本质却是操作系统能力，通过API暴露给用户使用。&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;h1 id=&quot;vs-线程进程-1&quot;&gt;vs 线程、进程&lt;/h1&gt;
+
+&lt;h1&gt;&lt;img src=&quot;/img/201909/process_thread.jpg&quot; alt=&quot;&quot; /&gt;&lt;/h1&gt;
+
+&lt;hr /&gt;
+&lt;h1 id=&quot;vs-线程进程-2&quot;&gt;vs 线程、进程&lt;/h1&gt;
+
+&lt;h1 id=&quot;-1&quot;&gt;&lt;img src=&quot;/img/201909/coroutine_process.jpg&quot; alt=&quot;&quot; /&gt;&lt;/h1&gt;
+
+&lt;hr /&gt;
+&lt;h1 id=&quot;vs-线程进程-3&quot;&gt;vs 线程、进程&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;谁来调度&lt;/li&gt;
+  &lt;li&gt;何时切换&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;线程/进程是os通过调度算法，保存当前的上下文实现暂停，重新开始的地方不可预期。每次CPU计算的指令数量和代码跑过的CPU时间有关，跑到os分配的cpu时间到达后就会被os强制挂起。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Coroutine&lt;/code&gt;是编译器的魔术，通过插入相关的代码使得代码段能够实现分段式的执行，重新开始的地方是&lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt;关键字指定的，一次一定会运行到&lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt;语句，所以本质是程序员决定何时挂起。&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;h1 id=&quot;协程的优点&quot;&gt;协程的优点&lt;/h1&gt;
+
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;c1&quot;&gt;// 可以轻松执行以下代码：
+&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;300000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${Thread.currentThread().name} is busy calculating&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;// 视机器配置，可能无法运行下面代码：
+&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Thread&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;300000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${Thread.currentThread().name} is busy calculating&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;hr /&gt;
+&lt;h1 id=&quot;协程的优点-1&quot;&gt;协程的优点&lt;/h1&gt;
+
+&lt;h3 id=&quot;开销小&quot;&gt;开销小&lt;/h3&gt;
+&lt;p&gt;线程的时间成本可以拆解为：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;切换本身&lt;/strong&gt;的开销，主要是&lt;strong&gt;寄存器保存和恢复&lt;/strong&gt;的成本，可腾挪的余地非常有限；&lt;/li&gt;
+  &lt;li&gt;执行体的&lt;strong&gt;调度&lt;/strong&gt;开销，主要是如何在大量已&lt;strong&gt;准备好的执行体中选出谁获得&lt;/strong&gt;执行权；&lt;/li&gt;
+  &lt;li&gt;执行体之间的&lt;strong&gt;同步与互斥&lt;/strong&gt;成本。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;线程的空间成本可以拆解为：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;执行体的&lt;strong&gt;执行状态&lt;/strong&gt;；&lt;/li&gt;
+  &lt;li&gt;TLS（线程&lt;strong&gt;局部存储&lt;/strong&gt;）；&lt;/li&gt;
+  &lt;li&gt;执行体的&lt;strong&gt;堆栈&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;显然，上述成本的比重各不相同。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;默认情况下Linux 线程在数MB 左右，其中最大的成本是堆栈。如果一个线程 1MB，那么有 1000 个线程就已经到 GB 级别了。&lt;/li&gt;
+  &lt;li&gt;执行体的调度开销，以及执行体之间的同步与互斥成本，也是一个不可忽略的成本。单位成本看起来不大，但扛不住次数太多。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://web.eece.maine.edu/~vweaver/projects/perf_events/overhead/fastpath2013_perfevents.pdf#page=4&quot;&gt;for core2 and modern Linux context switch may cost 5-7 microseconds.&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;bonus: 每秒多少cs是合理的？&lt;/p&gt;
+
+&lt;h3 id=&quot;不易出错&quot;&gt;不易出错&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;共享变量的同步锁&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;线程的任务分配是&lt;strong&gt;抢占式&lt;/strong&gt;，存在共享变量时，需要使用锁来保证线程间数据安全。
+协程间任务分配是&lt;strong&gt;分发式&lt;/strong&gt;，本身无此问题，但&lt;strong&gt;如果运行在多线程中，依然有问题&lt;/strong&gt;。&lt;/p&gt;
+
+&lt;p&gt;No silver bullet&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;协程的应用&quot;&gt;协程的应用&lt;/h1&gt;
+
+&lt;p&gt;协程主要应用场景是高性能的&lt;strong&gt;网络服务&lt;/strong&gt;。&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;来自客户端的请求包和服务器的返回包，都是网络IO；&lt;/li&gt;
+  &lt;li&gt;过程中，需要访问存储来保存和读取自身的状态，也涉及本地或网络IO。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如果用多线程来实现，如上所述，成本高，易出错。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;kotlin协程&quot;&gt;Kotlin协程&lt;/h1&gt;
+
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;fun&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;CoroutineScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineContext&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;EmptyCoroutineContext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineStart&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineStart&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;block&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;suspend&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Unit&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Job&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;CoroutineContext&lt;/code&gt;: 可以理解为协程的上下文，其中一个实现&lt;code class=&quot;highlighter-rouge&quot;&gt;CoroutineDispatcher&lt;/code&gt;支持4种线程模式：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Dispatchers.Default, 默认线程池, &lt;code class=&quot;highlighter-rouge&quot;&gt;CPU-heavy&lt;/code&gt;任务&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html&quot;&gt;Dispatchers.IO&lt;/a&gt;, 适合&lt;code class=&quot;highlighter-rouge&quot;&gt;IO-heavy&lt;/code&gt;任务&lt;/li&gt;
+  &lt;li&gt;Dispatchers.Main, 主线程&lt;/li&gt;
+  &lt;li&gt;Dispatchers.Unconfined, 没指定，就是在当前线程&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;kotlinx.coroutines.*&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;fun&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// launch a new coroutine in background and continue
+&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;delay&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1000L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// non-blocking delay for 1 second (default time unit is ms)
+&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;World!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// print after delay
+&lt;/span&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Hello,&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// main thread continues while coroutine is delayed
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Thread&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2000L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// block main thread for 2 seconds to keep JVM alive
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;hr /&gt;
+
+&lt;h1 id=&quot;参考资料&quot;&gt;参考资料&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/Kotlin/KEEP/blob/master/proposals/coroutines.md&quot;&gt;Kotlin Coroutines Design Proposal&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://kotlinlang.org/docs/reference/coroutines/basics.html&quot;&gt;Kotlin Coroutine Reference&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://kotlinlang.org/docs/reference/coroutines/shared-mutable-state-and-concurrency.html&quot;&gt;Shared mutable state and concurrency&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do&quot;&gt;What does the “yield” keyword do&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=YrrUCSi72E8&quot;&gt;Deep Dive into Coroutines on JVM&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.cnblogs.com/zingp/p/5911537.html&quot;&gt;协程及Python中的协程&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.jianshu.com/p/76d2f47b900d&quot;&gt;kotlin - Coroutine 协程&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;http://www.itboth.com/d/J3uE7v/context-cpu-switch-context-switch-java&quot;&gt;从Java视角理解CPU上下文切换&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Fri, 20 Sep 2019 14:30:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2019/09/20/coroutine.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2019/09/20/coroutine.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
     
       <item>
         <title>默克尔树（Merkle Tree）</title>
@@ -562,55 +852,6 @@ Xn表示第n代的人口相对于地球能承受的最大人口数N的比例 。
         <pubDate>Mon, 14 Nov 2016 12:15:09 +0800</pubDate>
         <link>http://localhost:4000/thinking/2016/11/14/election-determine.html</link>
         <guid isPermaLink="true">http://localhost:4000/thinking/2016/11/14/election-determine.html</guid>
-        
-        
-        <category>thinking</category>
-        
-      </item>
-    
-      <item>
-        <title>如果你也穷得看不起论文</title>
-        <description>&lt;p&gt;&lt;img src=&quot;/img/201610/scihub.png&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;不太追论文，但偶尔也有拿来瞄几眼的需求。比起搜网页，下论文一直是个frustrating的过程，直到碰到了一个良心工具。如果你也有此需求，比如看看新鲜出炉的“深度学习”论文，这篇文章也许对你有帮助。&lt;/p&gt;
-
-&lt;p&gt;何恺明，两次获得CVPR（Computer Vision and Pattern Recognition）最佳论文奖，建议做研究时应该：&lt;/p&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;多读论文。研究初期，需要海量阅读论文，并且不需要太专注于别人的具体算法和如何实现等细节，更多地去关注论文简介及作者所做的与研究相关的工作。&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;这话固然不错，但实践起来却不是容易的事。光从经济角度看就不容易，看论文其实是件奢侈的事。大部分论文，特别是经过校审的学术论文，都是付费下载，而且价格不菲。&lt;/p&gt;
-
-&lt;p&gt;也许正是这个原因，有个学长毕业后经常找还在学校的我下论文，因为学校以教育的名义能用较低的价格下载论文。但即使是这样，也是一笔不小的开支，就连哈佛大学这样的知名学府也在报怨付不起看论文的费用。&lt;/p&gt;
-
-&lt;p&gt;同样不爽的还有刚毕业时的俄罗斯姑娘Alexandra Elbakyan：&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;看一篇论文要付30多美元，实在是一件疯狂的事。要知道，做一个研究，常常要浏览几十几百篇论文。所以，我通过pirating获得论文！不论收入和身份，每个人都有权获得知识。这完全合法。&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;战斗民族的彪悍之处在于，不爽了就得反抗，于是，&lt;a href=&quot;http://sci-hub.cc/&quot;&gt;Sci-Hub&lt;/a&gt;诞生了。&lt;/p&gt;
-
-&lt;p&gt;搜索论文时，Sci-Hub会直接从兄弟网站LibGen中下载，如果还没有收录，就从传统论文期刊网站下载，再保存到LibGen中。借助于人们匿名贡献的访问凭证，Sci-Hub可以越过这些期刊的收费环节。这意味着上传到Springer，Elsevier上的论文很快就会在Sci-Hub上出现。&lt;strong&gt;迄今为止，它已经收录了约5000万篇论文，差不多是所有已发表的审阅论文&lt;/strong&gt;。&lt;/p&gt;
-
-&lt;p&gt;网站不仅没有广告，连操作都简洁得出奇，如果是精确命中，甚至没有搜索结果列表，点击搜索就直接下载。如果你也穷得看不起论文，还等什么，赶紧收藏吧。&lt;/p&gt;
-
-&lt;p&gt;Sci-Hub的做法引发了激烈的讨论，利益受损的Elsevier更是将其告上法庭。好在美国人的法律，管不到老毛子的土地上。不讨论法律，我们从普通民众角度朴实地发表看法。&lt;/p&gt;
-
-&lt;p&gt;论文有著作权，和同样有著作权的书籍、音乐类似，这样似乎可以得出Sci-Hub不对的结论。但必须注意到一个重要区别：通过音乐发行商和书籍出版社，著作权所有者都能从中获得经济利益，而论文的作者并没有从期刊的收录中获得利益，更没有所谓的点击付费。不仅没有，还要付出一些代价。因为，研究人员的晋升一定程度上取决于发表多少论文，以及论文在什么样的刊物上发表。为了让论文能被大众看到，他们常常要付费给期刊。&lt;/p&gt;
-
-&lt;p&gt;期刊其实是个两面收费的中介。这个中介没有保护、激励作者，也没有促进知识的流通。而互联网的一大功能是促进信息的流动和透明，让更多人能免费、高效地获得信息。可以断言，即使这个Sci-Hub倒下了，也还会有更多Sci-Hub站起来。&lt;/p&gt;
-
-&lt;p&gt;正如&lt;a href=&quot;http://www.un.org/en/universal-declaration-human-rights/index.html&quot;&gt;联合国人权宣言&lt;/a&gt;里讲的：&lt;/p&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;Everyone has the right freely to participate in the cultural life of the community, to enjoy the arts and to share in scientific advancement and its benefits.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;当然，你可能会说，哪还有功夫去争论谁对谁错，如果穷得看不起论文，赶紧让自己先富起来！诚哉，斯言。&lt;/p&gt;
-</description>
-        <pubDate>Wed, 19 Oct 2016 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/thinking/2016/10/19/paper-reading.html</link>
-        <guid isPermaLink="true">http://localhost:4000/thinking/2016/10/19/paper-reading.html</guid>
         
         
         <category>thinking</category>
