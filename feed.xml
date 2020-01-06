@@ -5,8 +5,8 @@
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 06 Jan 2020 16:14:30 +0800</pubDate>
-    <lastBuildDate>Mon, 06 Jan 2020 16:14:30 +0800</lastBuildDate>
+    <pubDate>Mon, 06 Jan 2020 16:52:55 +0800</pubDate>
+    <lastBuildDate>Mon, 06 Jan 2020 16:52:55 +0800</lastBuildDate>
     <generator>Jekyll v3.7.3</generator>
     
       <item>
@@ -300,12 +300,286 @@
       </item>
     
       <item>
-        <title>排队的艺术</title>
+        <title>Queuing Theory——排队的艺术</title>
         <description>&lt;p&gt;近期团队遇到相关场景，把2016年在堆糖做过的分享搬出来做了点完善，再分享一次：&lt;a href=&quot;/pdf/queuing-theory.pdf&quot;&gt;排队的艺术&lt;/a&gt;&lt;/p&gt;
 </description>
         <pubDate>Tue, 29 Jan 2019 14:30:09 +0800</pubDate>
         <link>http://localhost:4000/computer/2019/01/29/queuing-theory.html</link>
         <guid isPermaLink="true">http://localhost:4000/computer/2019/01/29/queuing-theory.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
+    
+      <item>
+        <title>像代数推导一样编程</title>
+        <description>&lt;blockquote&gt;
+  &lt;p&gt;In math we trust——张首晟&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;纯函数已然为函数式编程赢得了巨大优势，但这还不够。纯函数还只是一块基石，它和另一块基础——数据不可变，一道构筑了函数式编程蔚为壮观的独特风景：代数推导。这是函数式编程最吸引我的地方，因为，数学终于从编程语言或者计算机科学的背后走向前台，让我们可以像代数推导一般，进行现实问题的建模和编码。根据张首晟教授的说法，区块链的信任机制本质上是对数学的信任。我想，这一样适用于函数式编程，数学的严谨性让模型和代码质量有了更多保障。而数学的抽象，让貌似不同的事物有了变成一样的可能，提高了代码的普适性。&lt;/p&gt;
+
+&lt;p&gt;学习函数式编程，与其说是学习某门具体的语言，不如说是学习如何运用代数结构描述现实事物，运用代数式子表达现实逻辑，运用代数推导求解现实问题。&lt;/p&gt;
+
+&lt;h3 id=&quot;面向表达式语言&quot;&gt;面向表达式语言&lt;/h3&gt;
+&lt;p&gt;代数，简而言之，研究的是：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;对象的&lt;strong&gt;集合&lt;/strong&gt;，这里的对象不是编程语言里的对象，反倒是更像类型。&lt;/li&gt;
+  &lt;li&gt;用对象创建新对象的&lt;strong&gt;操作&lt;/strong&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如，数构成集合，加减乘除构成操作。&lt;/p&gt;
+
+&lt;p&gt;介绍纯函数时，我们知道了数学上的运算可以写成纯函数，如&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x) = 2 * x + 3&lt;/code&gt;可以写成&lt;code class=&quot;highlighter-rouge&quot;&gt;def f(x: Int) = x * x + 3&lt;/code&gt;，&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x, y) = x + y&lt;/code&gt;写成&lt;code class=&quot;highlighter-rouge&quot;&gt;def f(x: Int, y: Int) = x + y&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;集合里的对象，也就是语言的类型，后面再辟专门的章节讲述。先看看看代数的推导过程，蕴含了哪些值得借鉴的做法。以下是一道简单代数题的求解过程：&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;已知函数f(x + 2) = 2x^2 - 5x + 1，求f(x)。
+解：
+设 t = x + 2, 则x = t - 2
+∴ f(t) = 2 * (t - 2)^2 - 5 * (t - 2) + 1
+∴ f(t) = 2 * (t^2 - 4 * t + 4) - 5 * t + 10 + 1
+∴ f(t) = 2 * t^2 - 13 * t + 19
+即，f(x) = 2 * x^2 - 13 * x + 19
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;可以发现：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;首先，在整个推导过程中，保持变量含义的不变，从头到尾的一致性。不会突然令&lt;code class=&quot;highlighter-rouge&quot;&gt;x = 9&lt;/code&gt;或别的值，当需要表达其它量时，启用新的变量t，并表述清楚t的来源&lt;code class=&quot;highlighter-rouge&quot;&gt;t = x + 2&lt;/code&gt;，而不是复用原来的变量：&lt;code class=&quot;highlighter-rouge&quot;&gt;x = x + 2&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;有人把变量的&lt;strong&gt;不可变性&lt;/strong&gt;视为函数式编程最重要的特性，因为，就像上述推导一样，它喻示着过程的可省视性。仅仅通过阅读代码，就可以理解整个逻辑，而不是指令式编程那样，必须在脑子里”运行”代码。当大脑无法跟踪太多变量的变化时，不得不借用纸笔或调试工具来debug，只消几层的if判断就足以把人绕晕。有了不可变性，可以放心地将代码的各个部分分离开，独立解读，脑子里要保留、跟踪的信息几乎不随代码规模的增长而增加。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;其次，在值相同的情况下，符号和表达式可以互相替代，如&lt;code class=&quot;highlighter-rouge&quot;&gt;t&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;x + 2&lt;/code&gt;在通篇任意位置可以互相替代，这种替代在数学上叫&lt;strong&gt;换元&lt;/strong&gt;，用于辅助推导，并不改变语义。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;若要在代码层面“换元”，则要求满足引用透明，引用透明辅助编译器对代码做优化，如果没有引用透明，编译器无法自由地替换“表达式“和“值”，因为前后两次的执行结果可能不同，哪怕结果完全一样，程序只能无奈地一次次对该表达式做求值操作。也不能改变表达式的顺序，因为前后两次的求值结果可能不一样，进而限制了程序的并发性。&lt;/p&gt;
+
+&lt;p&gt;代数也是一门语言，它用数学模型描述现实世界，并解决逻辑问题。如果把它也看成一门编程语言，它应该归入什么类别呢？大概“面向表达式语言”是比较合理的分类。没错，表达式！看上面代数题的求解过程，本质是表达式的归约操作、合并同类项操作。所谓归约，就是将每个最内层可归约表达式用其值来替换，这样又形成了新的最内层可归约表达式，然后再对其进行归约，最后，整个程序全部被归约，仅留下最终结果。&lt;/p&gt;
+
+&lt;p&gt;所以，用它解决问题的过程应该是，用数字或符号描述现实世界，如直角三角形的两和直角边长度分别为a和b，依据放之四海而皆准的公理，如勾股定理，构建它们的逻辑关系，如斜边&lt;code class=&quot;highlighter-rouge&quot;&gt;c^2 = a^2 + b^2&lt;/code&gt;
+，再用加减乘除等运算操作，简化、规约表达式，求得斜边长度。这一过程中，我们并没有过问这些变量寄存在哪里（有人直接在脑子里算，也有人要在纸上演算），也不关心它们是否复用了同一块内存，会不会被其它人错误地读写了。我们关心的是想要什么，得到结果的逻辑是什么，而不是如何赋值、如何改写变量。前者是人类擅长的，后者是机器擅长的。我们应让机器服务人类，而不是反过来，人类迁就机器。为此，我们需要一个工具，把高阶的人类思维忠实地转换为低阶的机器语言。&lt;/p&gt;
+
+&lt;p&gt;函数式语言就是这样的工具，它有一个少为人知的别名，正是“面向表达式语言”。&lt;strong&gt;表达式&lt;/strong&gt;是值和逻辑（函数）的组合，讲究如何编织逻辑以创建新的值，执行的过程即是规约化得到最终结果的过程，如：&lt;code class=&quot;highlighter-rouge&quot;&gt;val total = sum(list)&lt;/code&gt;，sum是一个求和的运算逻辑，通过这个逻辑得到值&lt;code class=&quot;highlighter-rouge&quot;&gt;sum&lt;/code&gt;。 与之相反的是&lt;strong&gt;指令式&lt;/strong&gt;，用一系列的执行单元，告诉计算机如何改变指令计数器、数据存储器、当前计数状态等，通过状态的改变得到最终结果，如：&lt;code class=&quot;highlighter-rouge&quot;&gt;list.sum()&lt;/code&gt;，sum是个运算指令，它不返回计算的值，而是改变了某个状态，通过读取这个状态的地址得到结果。&lt;/p&gt;
+
+&lt;p&gt;指令式语言让我们从低级语言的内存、栈、寄存器等概念中解脱，却依然是指令运行过程的封装：循环、锁、线程、并发。函数式语言则进一步抽象，更多地让编译器、解析器处理这些概念，让人腾出更多精力关注数据模型、关注业务逻辑。&lt;/p&gt;
+
+&lt;h3 id=&quot;函数的组合&quot;&gt;函数的组合&lt;/h3&gt;
+&lt;p&gt;他山之石，可以攻玉。我们回头再挖掘下代数里可以借鉴的特质。&lt;/p&gt;
+&lt;div class=&quot;language-markdown highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;如果f(x) = 3x - 1，且g(x) = x^3 + 2，那么f(g(3))的值是多少？
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;间接的做法是，先求得&lt;code class=&quot;highlighter-rouge&quot;&gt;g(3) = 29&lt;/code&gt;，进而&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(3)) = f(29) = 86&lt;/code&gt;。那么，有没有直接的做法呢？&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/201810/compose_func.png&quot; alt=&quot;compose&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;为了直接计算&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(x))&lt;/code&gt;，我们得&lt;strong&gt;组合&lt;/strong&gt;（Composition）f和g这两个函数。由于&lt;code class=&quot;highlighter-rouge&quot;&gt;g(x)&lt;/code&gt;是&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x)&lt;/code&gt;的输入，可以把&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x)&lt;/code&gt;的各个&lt;code class=&quot;highlighter-rouge&quot;&gt;x&lt;/code&gt;替换为&lt;code class=&quot;highlighter-rouge&quot;&gt;g(x)&lt;/code&gt;，得到&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(x)) = 3g(x)-1 = 3x^3+5&lt;/code&gt;，即是图中绿线所表示的函数。&lt;/p&gt;
+
+&lt;p&gt;在Scala里，&lt;code class=&quot;highlighter-rouge&quot;&gt;Function1&lt;/code&gt;接口定义了&lt;code class=&quot;highlighter-rouge&quot;&gt;compose&lt;/code&gt;方法和&lt;code class=&quot;highlighter-rouge&quot;&gt;andThen&lt;/code&gt;方法，均可以用来组合单参数函数。&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(x))&lt;/code&gt;可以写成：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;f: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;g: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fg&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compose&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fg2&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;andThen&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;注意，”_“表示Eta expansion。&lt;/p&gt;
+
+&lt;p&gt;组合看上去再自然不过了，以至于我们不觉得有什么特别或厉害的。然而，稀松平常的组合却透露了编程的本质。&lt;/p&gt;
+
+&lt;p&gt;我们是如何解决问题的？每当碰到复杂的问题，就把它分解为更小的问题，直到问题足够小，小到我们可以写代码解决它。然后，再组合这些小颗粒度的代码，形成原始问题的解决方案。问题规模的限制并不是计算机强加给我们的，而是人类大脑的限制。1956年发表的著名论文《神奇的数字 7，加减 2：人类信息加工容量的某些局限》指出，不管记忆的内容怎么变化，是数字，字母，数字 + 字母，还是从 1000 个单音节单词中随机选，人们在记忆这些材料的时候，大概只能记住 5-9 个。所以，我们必须把一次性可以处理的代码块规模控制在大脑可以接受的程度。所谓”优雅代码”，不是结构清晰、简洁所能概括的，更切中要害的说法是，可被有限的大脑带宽处理。&lt;/p&gt;
+
+&lt;p&gt;分解本身不是目的，解决问题需要重组这些子块，如果无法重新组合，分解的意义就不存在。什么样的函数能组合呢？显然，一个函数的输出类型必须和另一个函数的输入类型保持一致。至少在函数式语言内，这是”类型”概念存在的根本原因。有关类型，我们后面再详谈。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;em&gt;本文节选自&lt;a href=&quot;https://github.com/vitrun/scalazen&quot;&gt;《函数式思维学习录》&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
+</description>
+        <pubDate>Mon, 29 Oct 2018 14:30:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2018/10/29/fp-algebra.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/29/fp-algebra.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
+    
+      <item>
+        <title>纯函数的好处</title>
+        <description>&lt;blockquote&gt;
+  &lt;p&gt;哦，雪白的纯朴具有何等大的威力！——济慈&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;纯函数的两个优良品质，为它赢得了很多优势。&lt;/p&gt;
+
+&lt;h4 id=&quot;引用透明&quot;&gt;引用透明&lt;/h4&gt;
+&lt;p&gt;以直接用函数运行的结果替代函数表达式本身而不改变程序的最终结果，称为引用透明（Referential Transparent）。如：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;world&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;如果把第二处”hello”.length换成x，或者反过来，把第二处y换成”world”
+.length，并不改变z的值。这似乎是很显然的事，却是以length是纯函数为前提的，换成随机数生成函数、获取当前时间的函数，就不能替换。如果改变函数范围外的变量，也会破坏引用透明，如：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;//false
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;记忆&quot;&gt;记忆&lt;/h4&gt;
+&lt;p&gt;引用透明很好，可避免函数的反复执行，但毕竟还是需要人工替换，如果函数自身能智能地实现一次计算，多处使用就好了。可喜的是，对于纯函数，编译器可以实施名为”记忆”（Memoization)的优化技术，正是达到这个效果。特别是执行很费时的函数，把结果缓存起来，当下次用相同入参调用时，便可直接返回缓存的结果，不再重新计算，大大提高程序的效率。当然，通过把入参和结果作为键值对保存在Map中，我们可以自己实现缓存过程，方便控制缓存策略。用通常不太缺乏的内存空间换取宝贵的计算时间，这是计算机科学里常用的”伎俩”。&lt;/p&gt;
+
+&lt;h4 id=&quot;缓求值&quot;&gt;缓求值&lt;/h4&gt;
+&lt;p&gt;缓求值(Lazy Evaluation)，指尽可能地推迟求解表达式，是函数式编程语言常见的一种特性。Scala通过lazy关键字声明缓求值。缓求不会在遇到表达式时就触发运行，而是在用到的时候才真实计算。缓求在记忆之外，为昂贵的运算提供了另一种优化手段。如，以下判断质数的函数，虽然表达式&lt;code class=&quot;highlighter-rouge&quot;&gt;isPrimeSlow(num)&lt;/code&gt;在if判断前面，但只有当输入为奇数时，才会真正被执行。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isPrimeSlow&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;until&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isPrime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;lazy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isPrimeSlow&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;缓求值在集合中的应用更能体现其价值。熟悉Python的同学知道生成器（generator）的概念，应用了缓求了集合与之类似，对于很大的集合，不是一次性生成（或者说根本就没有生成），只是需要的时候才吐出所需的元素。对比intsEager和intsLazy执行效果，便会发现对于寻找大于5的第一个数6而言，intsEager一次性生成了10万个元素，但比6大的元素对于求解结果毫无帮助，白白浪费了内存，简直是暴殄天物。如果把这个形式推到极限，对于有无限个元素的集合，似乎只有缓求方式才能胜任了。这下我们发现了，相比于”记忆”，缓求倒过来了，它是以临时计算来免除需要事先准备好的内存。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intsEager&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;intsEager&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intsLazy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;until&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100000&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;intsLazy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;以上，是纯函数为语言提供的额外特性，可以认为是一些与身俱来的优势。接下来分析纯函数为编程实践带来的好处，如何帮助提高代码质量，提高开发效率。&lt;/p&gt;
+
+&lt;h4 id=&quot;纯函数更易推断&quot;&gt;纯函数更易推断&lt;/h4&gt;
+&lt;p&gt;纯函数的签名已经把它的目的和盘托出了，不需要细看内部实现，就可以相信它没有多干其它小动作，所以不会有超乎签名的副作用和意外效果。经验不足的同学甚至在java的getter类方法中做了写操作：&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Integer&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;visit&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;哪怕老手也难免有被糊弄的时候。比如，出乎意料，下面这段代码会访问网络，因为URL的hashCode方法会尝试解析域名。&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;notPure&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;URL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;URL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;http://example.com&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;Sets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newHashSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MalformedURLException&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;//ignored&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;纯函数就没有这些问题，这是多么大的心智减负。&lt;/p&gt;
+
+&lt;h4 id=&quot;纯函数更易组合&quot;&gt;纯函数更易组合&lt;/h4&gt;
+&lt;p&gt;函数的组合（compose)，简单而言，就是把若干函数按一定顺序拼接组成新函数。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compose&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;, &lt;span class=&quot;kt&quot;&gt;B&lt;/span&gt;, &lt;span class=&quot;kt&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;B&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;C&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;后续会介绍，组合在函数式编程中有着举足轻重的地位。且看组合的具体应用——优雅的链式调用：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;doThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;thenThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;andThenThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;doThisToo&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;andFinallyThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;如果不是纯函数，很难想象可以放心地写出这段代码。doThis(a)如果改变了a，会怎么影响doThisToo的行为？如果各步骤共享了状态，拋了异常，代码的整体行为表现是怎样的？正确评估这些问题极其消耗心力。而纯函数的确定性，可以让后续步骤放心地依赖前面步骤的输出，代码的作用如字面语义一样跃然纸上。&lt;/p&gt;
+
+&lt;h4 id=&quot;纯函数更易测试和定位问题&quot;&gt;纯函数更易测试和定位问题&lt;/h4&gt;
+&lt;p&gt;唯一能影响函数行为的只有输入参数，没有不为人知的魔法，没有数据库、磁盘读写，所以不用关心函数外的环境因素，进而在不同人的电脑上debug效果一样。同理，指令式编程过程中费时费力的单步调试，此时不再重要了，关心函数的输出即可。&lt;/p&gt;
+
+&lt;h4 id=&quot;纯函数更易并发&quot;&gt;纯函数更易并发&lt;/h4&gt;
+&lt;p&gt;纯函数保证值不变性，值一旦生成就不再改变，无论是同一线程还是多个线程，都不允许修改。所以连锁都免了，更没有死锁或数据竞态问题了。&lt;/p&gt;
+
+&lt;p&gt;因为没有副作用，从出入参就可以看出函数之间的依赖关系，如果前后没有数据依赖，其先后顺序便可以交换，或者在多个线程中独立运行而不相互干涉。如下面代码中，f、g、h在字面上的先后顺序是固定的，但编译器完全可以根据需要改动实际执行顺序，或者优化为并发执行。如果它们有副作用，比如暗地里修改了共享的状态，就不能这么轻巧地优化了。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;h&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;我们从回顾众所周知的函数开始，再区分纯函数和非纯函数，进而专注于纯函数式的特点、好处。接下来，如何不是特别说明，提到函数时指的就是纯函数。函数式编程，更准确的说法应该是”纯函数”式编程。纯函数所带来的好处构成了函数式编程的核心优势，这点后续将有更多体现。&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;em&gt;本文节选自&lt;a href=&quot;https://github.com/vitrun/scalazen&quot;&gt;《函数式思维学习录》&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
+</description>
+        <pubDate>Sat, 20 Oct 2018 14:30:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2018/10/20/why-pure-function.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/20/why-pure-function.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
+    
+      <item>
+        <title>纯函数的特质</title>
+        <description>&lt;blockquote&gt;
+  &lt;p&gt;大人者，不失其赤子之心者也。——孟轲&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;数学家比较幸福的一点是，他们研究的函数是”纯净”的。没有异常，没有意外，同样的入参一定返回同样的结果。如果不是，那就是人出错了。&lt;/p&gt;
+
+&lt;p&gt;编程里的函数就没这么纯粹，会遇到无法处理的输入，会在中途拋出异常，在返回值之外会留下别的痕迹。这些不确定性因素，使得人们不能放心大胆地使用函数。因此，需要一个标准，把有这类特点的问题函数识别出来，让”纯函数”发扬光大。&lt;/p&gt;
+
+&lt;p&gt;“纯函数”具备以下性质：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;确定性&lt;/strong&gt; 相同的入参，一定返回相同结果，不受内部隐藏状态、隐藏值的影响，也不受任何I/O的影响。多次调用的结果保持一致，说明纯函数具有幂等性。&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;无副作用&lt;/strong&gt; 运行函数不能引发可辨别的副作用或输出，如修改可变对象，或写入I/O设备。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;展开来讲，纯函数应该避免：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;读取函数之外的任何值，如所在类的属性，或全局变量。&lt;/li&gt;
+  &lt;li&gt;修改函数之外的任何对象，如所在类的属性或全局变量。&lt;/li&gt;
+  &lt;li&gt;依赖任何I/O操作，如从本地文件、数据库、API、屏幕等途径读取或写入内容。&lt;/li&gt;
+  &lt;li&gt;修改输入参数。&lt;/li&gt;
+  &lt;li&gt;拋出异常。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;回顾之前的定义，对于数学意义上的函数，定义域的元素总能唯一对应值域的元素，加上数学是一种逻辑符号语言，自然没有副作用。那么不难理解，表达这些数学含义的代码函数（scala.math._里定义的函数）也应该是纯函数，如：square, min, max, abs等。或者你自定义的计算，如：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;squareSum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;很多常用类的方法，并不改变方法之外的类属性，也不进行I/O操作，也是纯函数。如String的charAt, isEmpty, length；集合类型的drop（没错，drop也是）, filter, map等。&lt;/p&gt;
+
+&lt;p&gt;再来看看纯函数的反例。同样是数学上的运算，如果函数拋出异常，就不纯了，因为异常时没有和输入对应的结果。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;x:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;y:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Int&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;java&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lang&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ArithmeticException&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;by&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;zero&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;也不是所有集合类的方法都是纯函数，foreach方法就是专门为副作用准备的。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;foreach&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Unit&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;Unit在scala中表示”没有东西”，如果一个函数接受了输入，但不返回任何结果，那么它做的工作就只能是”副作用”了。&lt;/p&gt;
+
+&lt;p&gt;常见的非纯函数还有：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;getDayOfWeek，getHour，getMinute等方法，因为不同时刻调用它们得到的结果不同。&lt;/li&gt;
+  &lt;li&gt;scala.util.Random中用于生成随机数的nextInt，因为返回值依赖了输入之外的隐藏状态。&lt;/li&gt;
+  &lt;li&gt;I/O操作，如&lt;code class=&quot;highlighter-rouge&quot;&gt;def println(x: Any): Unit&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;def readLine(): String&lt;/code&gt;。所以，当发现签名的入参为空或出参为Unit时，就得擦亮眼睛了。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;此外，面向对象语言里常见的setter方法，或改变了所在对象的状态的方法也不是纯函数，如：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;pureFunction&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;delta&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;delta&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;至此，我们已经能辨别纯函数，可纯函数有什么好处呢？&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;em&gt;本文节选自&lt;a href=&quot;https://github.com/vitrun/scalazen&quot;&gt;《函数式思维学习录》&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
+</description>
+        <pubDate>Fri, 05 Oct 2018 14:30:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2018/10/05/what-is-pure-function.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/05/what-is-pure-function.html</guid>
         
         
         <category>computer</category>
@@ -652,184 +926,6 @@
         
         
         <category>reading</category>
-        
-      </item>
-    
-      <item>
-        <title>思考，弯与直</title>
-        <description>&lt;p&gt;&lt;img src=&quot;/img/201612/thinking.jpeg&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;思考，不紧有快与慢，还有弯与直。&lt;/p&gt;
-
-&lt;p&gt;我们常说，设目标提要求时，尽量稍微高出现在的能力水平，跳一跳能够着，这样对人的提升最有效。说得高大上一些，叫舒适区理论：在舒适区没有成长，恐慌区损害健康，伸展区最好。这一理论的基本假定是，人是不能突变的，即人不可能在短时间内有大变化。其背后的认知是，人是线性的。也许人确实是线性的，但重点不在于此，重点在于，它影响了我们的思维，使它表现出线性。加减乘除我们理解起来很自然，一旦到了次方，开方，阶乘，指数之后，没几个人能凭直觉理解。复利算是生活中常见的了，有几个人真切体会到它的威力了呢？又有多少人有资格笑话印度国王不假思索的豪气：“赏你这么多小麦，第1格1粒，2格2粒，3格4粒……直到64格”？&lt;/p&gt;
-
-&lt;p&gt;我们习惯性地以线性思维来看待这世界，就像我们容易不自觉地戴上有色眼镜一样。只可惜，这个世界并不因为我们的线性思维而改变它非线性的主体本质。&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;弱小和无知不是生存的障碍， 傲慢才是 ——《三体》&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;能认知到思维的线性特征的人，无疑是有自知之明的人。没有冒犯的意思，自知之明在我看来，确实是个非常高的要求。认知到了你就会在常规思考后，再多想一层：会不会是我的线性思维导致我得出这样的结论，而其实它压根就不是线性的呢？甚至是不连续的、跳跃的、混沌的？不连续性比非线性还要更有冲击力，我们一再强调总结、复盘，可对于不连续的事物，归纳过去真的能预测未来吗？&lt;/p&gt;
-
-&lt;p&gt;我了解的算法不多，其中 SVM(支持向量机)，是我非常喜欢的一个。两年前在公司内部做过一个技术分享，当然，我估计大部分都忘得一干二净了，分享的最大受益人总是分享者本人。而那句对 SVM的描述我可能永远都不会忘记：“这个算法的本质是把平面上线性不可分的样本，映射到高维空间中，使其线性可分。”。这简直太妙了，人很容易理解平面，但那又如何，不解决问题呀。而人不能很好地驾驭高维空间，就有点遗憾了，因为我们需要构造核函数来实现这个映射，无法想象高维空间，你如何来调整参数呢？这就制约了这个算法的使用。思维的局限性使得我们无法完全发挥它的威力。&lt;/p&gt;
-
-&lt;p&gt;生活中有没有例子？当然有。你的心电图是什么曲线？肯定不是直线。健康人的心率曲线是凹凸不平的不规则形状，呈现某种自相似性，貌似混沌。而帕金森患者的心率曲线反而呈现更多的规则性和周期性行为，表现得更有规律。&lt;/p&gt;
-
-&lt;p&gt;再如，工程师群体经常讨论的，一个牛逼程序员顶几个普通程序员？可能是2个也可能是10个甚至100个。前段时间帮人面试新项目的后端技术，他准备前期就用一个程序员搞定。引发我的联想是，堆糖现在这个量级以极致的程度估计的话，多少后端能搞定呢？当然，这不是本文的重点了，按下不谈。&lt;/p&gt;
-
-&lt;p&gt;汽车为什么能取代马匹？谷歌为什么能取代雅虎？因为后者的效率相对于前者有几何级别的增长，不是简单的涨百分几，翻番也不算。前面《如何判断创业项目靠不靠谱》里提到吴军的“黄赌毒”模型，其实他还讲了别的标准，其中一条就是，效率，或者其他的纬度，相比于上一代产品或者公司，有没有数量级的提升。下面这张图来自FirstRound，描述了苹果的产品迭代路线：在旧产品即将进入线性区之时，及时推出新的拳头产品，华丽丽地进入更抖的成长“弯线”。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/img/201612/apple-grow.jpeg&quot; alt=&quot;苹果的阶跃&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;问个一般人不会考虑的问题：人为什么会感到惊讶，奇怪？就像现在的你……可能请心理学的同学回答比较好。我的理解是，因为认知和现实发生了冲突。冲突的原因可能有很多，其中一个便是现实的非线性和人的线性。我很乐于听说那些让人感叹“这也可以，屌！”的故事，既挠了痒痒，又照亮了盲点。&lt;/p&gt;
-
-&lt;p&gt;讲到这里不得不提下马斯克的第一原理性理论。有光环耀眼的钢铁侠背书，总觉得很牛逼，但又找不出牛逼的原因。也是码这些字的时候突然发现，第一原理性正是克服线性思维的一大利器。不要凭感觉，也不要看这事是不是让大众咋舌了，就看它有没有违背物理学规律。没违背， OK，那就有实现的可能。你想得再夸张都没问题，越夸张越让别人艳羡。&lt;/p&gt;
-
-&lt;p&gt;那么，你的思考，弯的还是直的？&lt;/p&gt;
-</description>
-        <pubDate>Fri, 02 Dec 2016 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/thinking/2016/12/02/thinking-method.html</link>
-        <guid isPermaLink="true">http://localhost:4000/thinking/2016/12/02/thinking-method.html</guid>
-        
-        
-        <category>thinking</category>
-        
-      </item>
-    
-      <item>
-        <title>建立高效的阅读体系</title>
-        <description>&lt;p&gt;阅读，是我们汲取知识、涤荡思想的主要手段。如果学习是终身的，那么如何建立高效的阅读体系，也是一个伴随一生的话题。这里阶段性地总结下我的探索，略做分享。&lt;/p&gt;
-
-&lt;h3 id=&quot;发现好内容&quot;&gt;发现好内容&lt;/h3&gt;
-
-&lt;hr /&gt;
-&lt;p&gt;永泽有个原则：“对死后不足三十年的作家，原则上是不屑一顾的。”，我们也许不必如此，但未经选择的阅读，确有随波逐流之嫌。发现好内容，可以放出眼光，自己来选，也可以众人拾柴，相信群众的智慧。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;豆瓣&lt;/strong&gt;
-豆瓣读书频道上可以找到大部分书，有目录、简介、网友评分、笔记和书评，根据这些，不难判断一本书是否符合你的胃口。已经形成这样的习惯：不经意看到的、别人推荐的，都到豆瓣上看看，不错就标记下“想读”。统一收口到这里，不用临时想下一本读什么，“想读”的列表总是比“读过”的长。额外的好处是，发现读书达人，某天循着晓良的朋友圈来到了他的豆瓣主页，发现比你忙的人，读书也比你多，比你快，动力就来了。&lt;/p&gt;
-
-&lt;p&gt;豆瓣上新的速度不快，对于国外较小众的书支持也不多。如果你也想猎奇，正好又是个科技题材的读者，MEAP（Manning Early Access Program）是个不错的选择，人家边写，你边看，有更新了，会及时推送。感谢苏土豪推荐。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;Reeder 3&lt;/strong&gt;
-个人博客时代已经远去，但依然有不少大牛在坚守。特别是在技术领域，除了他们自己的网站，很难在其它地方及时发现他们的内容。大牛的自留地，世外桃源般的独特存在，拜访模式也稍有不同。彼时，我们有Google Reader，纵有每天几百条的更新，管理起来依然很轻松。 gr之后，能让人称心的不多， Reeder的快捷方式和简洁程度都很赞，Mac端和IPhone端都有，无缝切换。&lt;/p&gt;
-
-&lt;p&gt;断断续续收集了40多个订阅源。因为更新频率普遍不高，内容的时效性也不高，每个月翻个两三次即可。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;SCI-HUB&lt;/strong&gt;
-学术文献阅读，不比大众读物，对我而言还是个痛苦的过程。老轮子隔三差五甩给我一堆论文时，我总是很好奇，他是如何能快速消灭这些“天书”的呢？但我知道，当读多了通俗读物，心中的疑问依然没有解决时，好奇心会驱使你找到学术文献。如果你也需要的话，Sci-hub是找论文，下论文， 不二选择，之前有专门篇幅说它：&lt;a href=&quot;/thinking/2016/10/19/paper-reading.html&quot;&gt;如果你也穷得看不起论文&lt;/a&gt;。&lt;/p&gt;
-
-&lt;h3 id=&quot;碎片时间简单读&quot;&gt;碎片时间简单读&lt;/h3&gt;
-
-&lt;hr /&gt;
-&lt;p&gt;对古人的“床上、厕上、马上”读书，一直有个误解，以为是说他们勤奋刻苦，其实可以有另一种理解，这“三上”不正是古人的碎片时间吗？碎片时间古已有之。看书不必刻意，空了拿出来翻翻，再自然不过。只是不同时段，不同环境，适合不同的题材，碎片时间适合消灭简单易懂的内容。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;Pocket&lt;/strong&gt;
-同事跟我描述他的一个痛点，本来想找主题 a的资料，中途看到 b被吸引了，循迹而去，半路又杀出 c、d、 e，一直被带着走，a没看多少，一上午过去了。 类似的还有，别人给你贴的链接，当下没空细看，不看的话忙着忙着又忘记了，直接保收集保存吗，可能又还没达到你的保存标准。 &lt;/p&gt;
-
-&lt;p&gt;先丢进一个盒子，缓存下，空了再翻出来看。这个盒子有不少选择，试用下来还是Pocket好用，速度快。浏览器里装个插件，点一点就好，空了之后，电脑或手机打开，相当方便。&lt;/p&gt;
-
-&lt;p&gt;不必害怕时间碎片化，如果这是一个既定事实，就拥抱它吧，刷微博、知乎、Twitter、 Hacker News，微信公众号……我使用这些应用的习惯甚至因 Pocket而改变了。在它们上面尽量快速浏览，淘汰掉大多数，少数不错的放进Pocket，很快就清理干净，专治“红点”强迫症。这时在Pocket内，你有了一个待读队列，而且是全局的，这很重要，确保了你始终可以看到所有信息源中最重要的文章。怕信息过载，多半是没有好的手段来管理信息。&lt;/p&gt;
-
-&lt;h3 id=&quot;完整时间深度读&quot;&gt;完整时间深度读&lt;/h3&gt;
-&lt;hr /&gt;
-&lt;p&gt;碎片化阅读是游击战，注重轻便灵活，适合解决小冲突，打不了大战役。需要整块时间做深度阅读，打硬仗，打大仗。硬仗、大仗少不了重型武器，我的重型武器是“多看阅读”。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;多看阅读&lt;/strong&gt;
-用多看的人不多了（似乎一直没多过），我一直这么忠实，是看重以下几个特性。在阅读这件事上，如果有一个工具能把事情做好，就都交给它好了，不必再搞第二个。&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;PDF重排功能。在手机上看 PDF的利器，数学公式多的除外……&lt;/li&gt;
-  &lt;li&gt;全文检索。这是标配了，看书不太会是线性前进的，难免要搜索，来回跳转。&lt;/li&gt;
-  &lt;li&gt;WIFI传书功能。至今没有任何一个平台可以直接买到所有书。 因此，工具的开放性就很重要了，它必须能加载其它书籍。WiFi传书就是一个简便的方式，把从不同渠道淘来的PDF，EPUB甚至是TXT，集中到多看，保证一致的阅读体验。&lt;/li&gt;
-  &lt;li&gt;笔记同步到Evernote。笔记自动同步到自动同步到绑定的Evernote帐号，免去了整理笔记的麻烦。这是我最在意的功能。豆瓣阅读也有同步笔记的功能，早期我一直用它。但因为是同步到豆瓣网站，大大减弱了检索和复用笔记的能力，只好弃用。&lt;/li&gt;
-  &lt;li&gt;统计。数量统计，时间统计，变化曲线等等，虽然使用频率低，但也很重要，无法评估就无法进步。&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;没有提到纸质书，因为它大概已经从我的阅读体系内退出了，去年买的书还堆在角落积灰。也没提很多人喜欢的Kindle，因为我无法再在手机之外携带一个Kindle，以及，我看重的功能，Kindle得有一些辅助工具才能完全做到。凡此种种小问题，放在大时间尺度上就是不小的成本。&lt;/p&gt;
-
-&lt;p&gt;比工具更重要的是完整的阅读时间，至少一小时吧。挤时间，这是工具之外的事了，威武如波姐，不论忙到几点，铁定要看一两小时才睡觉，第二天，依然生龙活虎。对于这种bug式的存在，我在自愧不如的同时，只想画个圈圈诅咒他。&lt;/p&gt;
-
-&lt;h3 id=&quot;沉淀沉淀沉淀&quot;&gt;沉淀、沉淀、沉淀&lt;/h3&gt;
-&lt;hr /&gt;
-&lt;p&gt;&lt;strong&gt;Evernote&lt;/strong&gt;
-这是整个阅读体系的中心，因为阅读的目的不是阅读本身，而是沉淀和运用。直接沉淀到大脑当然是最好了，但估计没人能百分百做到。我们需要一个触手可及、离线可用、搜索强大、安全可靠的知识管理工具。上面提到的工具都支持把内容收集到知识库中，这是硬性要求，绝不能妥协。 Evernote满足了我对这个工具的所有想象。12年至今，不离不弃，越来越倚重它。&lt;/p&gt;
-
-&lt;p&gt;Evernote本身的普及度已经很高了，不再赘述。想提一提的是Evernote Web Clipper，一个浏览器插件。这些功能都让人爱不释手：&lt;/p&gt;
-&lt;ul&gt;
-  &lt;li&gt;一键收集到Evernote，我们的精力很有限，一定要千方百计降低自己收集和保存的成本，不要浪费在无用的动作上：“复制-&amp;gt;打开软件-&amp;gt;新建文档-&amp;gt;粘贴”。 &lt;/li&gt;
-  &lt;li&gt;页面重排版，准确判断正文，去掉广告，去掉周边内容，花里胡哨瞬间变得清晰简洁。真的让阅读成为一种享受。&lt;/li&gt;
-  &lt;li&gt;高亮功能，收集前先高亮下重点，轻巧的小插件，也有重型武器的功能。&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h3 id=&quot;写在最后&quot;&gt;写在最后&lt;/h3&gt;
-&lt;hr /&gt;
-&lt;p&gt;上面提到的工具有各自的作用和分工，配合起来，解决了各个环节的问题：发现、筛选、计划、阅读、笔记、整理和沉淀。上下游建立畅通的管道，协同作战，才能成为体系。
-&lt;img src=&quot;/img/201611/reading.jpeg&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;
-祝大家都能有个合适自己的高效阅读体系。&lt;/p&gt;
-</description>
-        <pubDate>Mon, 28 Nov 2016 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/reading/2016/11/28/reading-system.html</link>
-        <guid isPermaLink="true">http://localhost:4000/reading/2016/11/28/reading-system.html</guid>
-        
-        
-        <category>reading</category>
-        
-      </item>
-    
-      <item>
-        <title>如何判断创业项目是否靠谱</title>
-        <description>&lt;p&gt;可穿戴设备有机会吗？&lt;/p&gt;
-
-&lt;p&gt;VR到底能不能火，什么时候火？&lt;/p&gt;
-
-&lt;p&gt;O2O行业有未来吗？&lt;/p&gt;
-
-&lt;p&gt;生鲜电商行不行？&lt;/p&gt;
-
-&lt;p&gt;不光是创业项目，还可以是想法、产品，甚至是行业。孟庆祥和吴军的课里分别提出了他们的模型，我觉得还蛮受用，这里做个简单的整理。&lt;/p&gt;
-
-&lt;h4 id=&quot;信息电路图&quot;&gt;信息电路图&lt;/h4&gt;
-
-&lt;p&gt;商场和门店的本质作用是展示信息。这可能是整节课下来我印象最为深刻的观点。商场和门店都太常见了，很少有人去思考“卖东西”之外的更深层次的作用。另外，这个描述具有一定抽象程度，能够把很多看似没有关系的东西联系在一起。原本需要case by case分析的案例，可以投射到信息维度，进而用这个模型分析。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/img/201611/circuit.png&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;要判断是不是信息，首先问，有变化吗？一成不变就没有信息可言；其次，顾客本来就知道吗？人皆尽知构不成信息；最后，是否易于理解？不易理解的也很难成为信息。&lt;/p&gt;
-
-&lt;p&gt;基于这个问题的回答，孟老师判断现在市面上的可穿戴设备大部分是没有价值的。血糖、血压、脉搏本身的变化范围非常小，现在看和一小时后看，一天后看，一个月后看，数据基本上是一样的。即使是病人，测过几次后，自己心里就有底了。随身穿戴一个不提供信息的设备，意义何在？&lt;/p&gt;
-
-&lt;p&gt;确认有信息存在后，要看信息的成本。实体店披露、展示信息，实体店的租金便是信息的成本。网上卖的衣服普遍比线下便宜，很重要一点是因为网上展示信息的成本要低很多。这个成本既是商家的成本，也是消费者的成本，拿起手机和出门逛商场，哪个方便不言自明。除了更方便，网上能提供更丰富、更多样的选择，进一步降低了成本。&lt;/p&gt;
-
-&lt;p&gt;为了取得比较好的传播效果，要注意挖掘人的心理。科技永远取代不了人的原始需求。比如，人们喜欢八卦，虽然从没有人把它定义为原始需求，但八卦伴随人类的历史可不短。《人类简史》说：“等到认知革命之后，智人有了八卦的能力，于是部落规模变得更大，也更稳定”。新闻、八卦类的东西，总能轻易虏获大众眼球。&lt;/p&gt;
-
-&lt;p&gt;电路的最后一环是信息的深度。&lt;/p&gt;
-
-&lt;p&gt;线上信息的流动之迅速和便捷极大地减少了信息的成本。很多传统行业的公司都在琢磨互联网会不会颠覆它们。以房地产为例，既然线上的信息成本更低，为什么房地产线上交易还是不如线下交易？因为，网上提供的轻度信息根本无法支撑起决策。&lt;/p&gt;
-
-&lt;p&gt;链家曾做过一次调查，全国的门店租金平均下来相当于每个业务员每个月多支出500块钱。显然和线上模式对比没有任何优势，但这个额外的信息成本给它们带来了线上无法实现的收益：它可以带客户看房，现场检验，当面交流，提供专业咨询服务甚至是金融服务。越是重大的决策，对信息深度的要求越高，也就越难被线上模式颠覆。&lt;/p&gt;
-
-&lt;h4 id=&quot;黄赌毒先行&quot;&gt;黄赌毒先行&lt;/h4&gt;
-
-&lt;p&gt;这是吴军老师的模型。黄赌毒是人类社会极力避免但可能永远无法消灭的东西，因为它们根植于人性的底层，反映了人类动物性的一面。一来需求强烈，二来见不得光，使得这些领域的从业者非常愿意去尝试新事物，寻求更大的利益或更隐蔽的方式。&lt;/p&gt;
-
-&lt;p&gt;吴军举了HTTPS的例子。没人愿意被发现浏览了黄色网站，因此在线黄色产业有很强的保密需求，还要能安全地交易和支付。互联网早期，人们根本无法想象在网站传输信用卡号。不能很好地保护用户隐私，这对于黄色网站而言是个痛点，所以加密技术甫一出现，他们便如获至宝，积极使用。如果说支付宝培养了人们网上支付的习惯，那么可以说是黄色网站种下了人们在网上交易的种子。&lt;/p&gt;
-
-&lt;p&gt;色情产业扶持的不光是HTTPS。google一下，发现有太多技术的流行与之有关。VCR、DVD、流传输、压缩，甚至是浏览器内的脚本JavaScript，VBScript和DHTML。&lt;/p&gt;
-
-&lt;p&gt;码这段字的时候收到一条短信提醒，比特币大涨到5500，创三年新高。投资比特币靠谱吗？套用吴军的模型，一个也许有用的表征是，比特币在国际洗钱链条中正发挥着越来越不可替代的作用。&lt;/p&gt;
-
-&lt;p&gt;似乎明白了点什么。&lt;/p&gt;
-
-&lt;p&gt;Facebook把宝押在了VR上，那VR什么时候什么能真正点燃大众消费市场呢？如果哪天你发现新闻报道VR在岛国的特色服务里，极大地提高了用户检验，获得了大家的一致好评，那它离流行就不远了。也许，你可以看准时机，买入Facebook的股票。&lt;/p&gt;
-
-&lt;p&gt;判断项目靠不靠谱绝非易事，以上提供两个可供参考的模型，也可以说是套路。积累几个套路，碰到实际问题时，若能灵活应用，或许能少走一些弯路。&lt;/p&gt;
-</description>
-        <pubDate>Mon, 21 Nov 2016 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/thinking/2016/11/21/check-idea.html</link>
-        <guid isPermaLink="true">http://localhost:4000/thinking/2016/11/21/check-idea.html</guid>
-        
-        
-        <category>thinking</category>
         
       </item>
     

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    
+        <title>纯函数的特质</title>
+    
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="site-header" role="banner">
+    <div class="wrapper">
+    <a class="site-title" href="/">Food for Thought Expected</a>
+    </div>
+    </header>
+    <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+        <div class="post">
+    <h3 class="post-title">纯函数的特质</h3>
+    <p class="post-date">2018-10-05</p>
+    <p class="post-meta"></p>
+    <div class="post-content"?>
+        <blockquote>
+  <p>大人者，不失其赤子之心者也。——孟轲</p>
+</blockquote>
+
+<p>数学家比较幸福的一点是，他们研究的函数是”纯净”的。没有异常，没有意外，同样的入参一定返回同样的结果。如果不是，那就是人出错了。</p>
+
+<p>编程里的函数就没这么纯粹，会遇到无法处理的输入，会在中途拋出异常，在返回值之外会留下别的痕迹。这些不确定性因素，使得人们不能放心大胆地使用函数。因此，需要一个标准，把有这类特点的问题函数识别出来，让”纯函数”发扬光大。</p>
+
+<p>“纯函数”具备以下性质：</p>
+<ul>
+  <li><strong>确定性</strong> 相同的入参，一定返回相同结果，不受内部隐藏状态、隐藏值的影响，也不受任何I/O的影响。多次调用的结果保持一致，说明纯函数具有幂等性。</li>
+  <li><strong>无副作用</strong> 运行函数不能引发可辨别的副作用或输出，如修改可变对象，或写入I/O设备。</li>
+</ul>
+
+<p>展开来讲，纯函数应该避免：</p>
+<ul>
+  <li>读取函数之外的任何值，如所在类的属性，或全局变量。</li>
+  <li>修改函数之外的任何对象，如所在类的属性或全局变量。</li>
+  <li>依赖任何I/O操作，如从本地文件、数据库、API、屏幕等途径读取或写入内容。</li>
+  <li>修改输入参数。</li>
+  <li>拋出异常。</li>
+</ul>
+
+<p>回顾之前的定义，对于数学意义上的函数，定义域的元素总能唯一对应值域的元素，加上数学是一种逻辑符号语言，自然没有副作用。那么不难理解，表达这些数学含义的代码函数（scala.math._里定义的函数）也应该是纯函数，如：square, min, max, abs等。或者你自定义的计算，如：</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">squareSum</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">b</span>
+</code></pre></div></div>
+
+<p>很多常用类的方法，并不改变方法之外的类属性，也不进行I/O操作，也是纯函数。如String的charAt, isEmpty, length；集合类型的drop（没错，drop也是）, filter, map等。</p>
+
+<p>再来看看纯函数的反例。同样是数学上的运算，如果函数拋出异常，就不纯了，因为异常时没有和输入对应的结果。</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">def</span> <span class="n">divide</span><span class="o">(</span><span class="n">x</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">y</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span>  <span class="n">x</span> <span class="o">/</span> <span class="n">y</span>
+<span class="n">divide</span><span class="k">:</span> <span class="o">(</span><span class="kt">x:</span> <span class="kt">Int</span><span class="o">,</span> <span class="kt">y:</span> <span class="kt">Int</span><span class="o">)</span><span class="nc">Int</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="n">divide</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="mi">0</span><span class="o">)</span>
+<span class="n">java</span><span class="o">.</span><span class="n">lang</span><span class="o">.</span><span class="nc">ArithmeticException</span><span class="k">:</span> <span class="kt">/</span> <span class="kt">by</span> <span class="kt">zero</span>
+</code></pre></div></div>
+
+<p>也不是所有集合类的方法都是纯函数，foreach方法就是专门为副作用准备的。</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">foreach</span><span class="o">[</span><span class="kt">U</span><span class="o">](</span><span class="n">f</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">U</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span>
+</code></pre></div></div>
+<p>Unit在scala中表示”没有东西”，如果一个函数接受了输入，但不返回任何结果，那么它做的工作就只能是”副作用”了。</p>
+
+<p>常见的非纯函数还有：</p>
+<ul>
+  <li>getDayOfWeek，getHour，getMinute等方法，因为不同时刻调用它们得到的结果不同。</li>
+  <li>scala.util.Random中用于生成随机数的nextInt，因为返回值依赖了输入之外的隐藏状态。</li>
+  <li>I/O操作，如<code class="highlighter-rouge">def println(x: Any): Unit</code>和<code class="highlighter-rouge">def readLine(): String</code>。所以，当发现签名的入参为空或出参为Unit时，就得擦亮眼睛了。</li>
+</ul>
+
+<p>此外，面向对象语言里常见的setter方法，或改变了所在对象的状态的方法也不是纯函数，如：</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">object</span> <span class="nc">pureFunction</span> <span class="o">{</span>
+  <span class="k">var</span> <span class="n">num</span> <span class="k">=</span> <span class="mi">1</span>
+
+  <span class="k">def</span> <span class="n">addNum</span><span class="o">(</span><span class="n">delta</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="n">num</span> <span class="o">+=</span> <span class="n">delta</span>
+    <span class="n">num</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+<p>至此，我们已经能辨别纯函数，可纯函数有什么好处呢？</p>
+
+<hr />
+
+<p><em>本文节选自<a href="https://github.com/vitrun/scalazen">《函数式思维学习录》</a></em></p>
+
+    </div>
+</div>
+<div class="post-foot">
+<p>微信扫一扫</p>
+<img class="image-responsive" src="/img/wx.jpg" alt="路过的世界" />
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_developer = 1;
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+var disqus_config = function () {
+    this.page.url = "http://localhost:4000/computer/2018/10/05/what-is-pure-function.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "纯函数的特质"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//vitrun-github-io.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                    
+
+    </div>
+    </main>
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+         <span><a href="/yzr.html"><span class="icon icon--me"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20 21.193l-.003.807h-19.993l-.004-.833c-.009-2.224.088-3.495 2.647-4.086 2.805-.647 5.573-1.227 4.242-3.682-3.943-7.275-1.123-11.399 3.111-11.399 4.153 0 7.043 3.971 3.11 11.398-1.292 2.44 1.375 3.02 4.242 3.682 2.57.594 2.657 1.873 2.648 4.113zm4-17.193h-7v2h7v-2zm0 4h-7v2h7v-2zm0 4h-7v2h7v-2z"/></svg>
+         <span><a href="https://github.com/vitrun"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span></a></span>
+         <span><a href="https://twitter.com/gnogle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+         <span><a href="/feed.xml"><span class="icon icon--rss"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-1.29 14.646c0 .748-.607 1.354-1.354 1.354-.749 0-1.356-.606-1.356-1.354 0-.747.607-1.353 1.355-1.353.748.001 1.355.606 1.355 1.353zm-2.71-5.237v2.004c2.521.025 4.567 2.068 4.592 4.587h2.008c-.026-3.629-2.965-6.566-6.6-6.591zm0-1.404c4.407.02 7.98 3.581 7.993 7.995h2.007c-.012-5.513-4.48-9.981-10-10v2.005z"/></svg>
+</span></a></span>
+<span class="hover_img">
+     <a href="#"><span><img src="/img/wx.jpg" alt="image" height="16" /></span></a>
+</span>
+      </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
