@@ -46,21 +46,21 @@
 </ul>
 
 <p>回顾之前的定义，对于数学意义上的函数，定义域的元素总能唯一对应值域的元素，加上数学是一种逻辑符号语言，自然没有副作用。那么不难理解，表达这些数学含义的代码函数（scala.math._里定义的函数）也应该是纯函数，如：square, min, max, abs等。或者你自定义的计算，如：</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">squareSum</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">b</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">squareSum</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">b</span>
 </code></pre></div></div>
 
 <p>很多常用类的方法，并不改变方法之外的类属性，也不进行I/O操作，也是纯函数。如String的charAt, isEmpty, length；集合类型的drop（没错，drop也是）, filter, map等。</p>
 
 <p>再来看看纯函数的反例。同样是数学上的运算，如果函数拋出异常，就不纯了，因为异常时没有和输入对应的结果。</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">def</span> <span class="n">divide</span><span class="o">(</span><span class="n">x</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">y</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span>  <span class="n">x</span> <span class="o">/</span> <span class="n">y</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">scala</span><span class="o">&gt;</span> <span class="k">def</span> <span class="nf">divide</span><span class="o">(</span><span class="n">x</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">y</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span>  <span class="n">x</span> <span class="o">/</span> <span class="n">y</span>
 <span class="n">divide</span><span class="k">:</span> <span class="o">(</span><span class="kt">x:</span> <span class="kt">Int</span><span class="o">,</span> <span class="kt">y:</span> <span class="kt">Int</span><span class="o">)</span><span class="nc">Int</span>
 
-<span class="n">scala</span><span class="o">&gt;</span> <span class="n">divide</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="mi">0</span><span class="o">)</span>
-<span class="n">java</span><span class="o">.</span><span class="n">lang</span><span class="o">.</span><span class="nc">ArithmeticException</span><span class="k">:</span> <span class="kt">/</span> <span class="kt">by</span> <span class="kt">zero</span>
+<span class="n">scala</span><span class="o">&gt;</span> <span class="nf">divide</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="mi">0</span><span class="o">)</span>
+<span class="nv">java</span><span class="o">.</span><span class="py">lang</span><span class="o">.</span><span class="py">ArithmeticException</span><span class="k">:</span> <span class="kt">/</span> <span class="kt">by</span> <span class="kt">zero</span>
 </code></pre></div></div>
 
 <p>也不是所有集合类的方法都是纯函数，foreach方法就是专门为副作用准备的。</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">foreach</span><span class="o">[</span><span class="kt">U</span><span class="o">](</span><span class="n">f</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">U</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">foreach</span><span class="o">[</span><span class="kt">U</span><span class="o">](</span><span class="n">f</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">U</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span>
 </code></pre></div></div>
 <p>Unit在scala中表示”没有东西”，如果一个函数接受了输入，但不返回任何结果，那么它做的工作就只能是”副作用”了。</p>
 
@@ -68,24 +68,20 @@
 <ul>
   <li>getDayOfWeek，getHour，getMinute等方法，因为不同时刻调用它们得到的结果不同。</li>
   <li>scala.util.Random中用于生成随机数的nextInt，因为返回值依赖了输入之外的隐藏状态。</li>
-  <li>I/O操作，如<code class="highlighter-rouge">def println(x: Any): Unit</code>和<code class="highlighter-rouge">def readLine(): String</code>。所以，当发现签名的入参为空或出参为Unit时，就得擦亮眼睛了。</li>
+  <li>I/O操作，如<code class="language-plaintext highlighter-rouge">def println(x: Any): Unit</code>和<code class="language-plaintext highlighter-rouge">def readLine(): String</code>。所以，当发现签名的入参为空或出参为Unit时，就得擦亮眼睛了。</li>
 </ul>
 
 <p>此外，面向对象语言里常见的setter方法，或改变了所在对象的状态的方法也不是纯函数，如：</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">object</span> <span class="nc">pureFunction</span> <span class="o">{</span>
   <span class="k">var</span> <span class="n">num</span> <span class="k">=</span> <span class="mi">1</span>
 
-  <span class="k">def</span> <span class="n">addNum</span><span class="o">(</span><span class="n">delta</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="nf">addNum</span><span class="o">(</span><span class="n">delta</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
     <span class="n">num</span> <span class="o">+=</span> <span class="n">delta</span>
     <span class="n">num</span>
   <span class="o">}</span>
 <span class="o">}</span>
 </code></pre></div></div>
 <p>至此，我们已经能辨别纯函数，可纯函数有什么好处呢？</p>
-
-<hr />
-
-<p><em>本文节选自<a href="https://github.com/vitrun/scalazen">《函数式思维学习录》</a></em></p>
 
     </div>
 </div>

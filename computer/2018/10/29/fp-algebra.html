@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     
-        <title>像代数推导一样编程</title>
+        <title>像代数推导一般</title>
     
     <link rel="stylesheet" href="/css/main.css">
 </head>
@@ -18,7 +18,7 @@
     <main class="page-content" aria-label="Content">
     <div class="wrapper">
         <div class="post">
-    <h3 class="post-title">像代数推导一样编程</h3>
+    <h3 class="post-title">像代数推导一般</h3>
     <p class="post-date">2018-10-29</p>
     <p class="post-meta"></p>
     <div class="post-content"?>
@@ -30,7 +30,7 @@
 
 <p>学习函数式编程，与其说是学习某门具体的语言，不如说是学习如何运用代数结构描述现实事物，运用代数式子表达现实逻辑，运用代数推导求解现实问题。</p>
 
-<h3 id="面向表达式语言">面向表达式语言</h3>
+<h5 id="面向表达式语言">面向表达式语言</h5>
 <p>代数，简而言之，研究的是：</p>
 <ul>
   <li>对象的<strong>集合</strong>，这里的对象不是编程语言里的对象，反倒是更像类型。</li>
@@ -39,10 +39,10 @@
 
 <p>如，数构成集合，加减乘除构成操作。</p>
 
-<p>介绍纯函数时，我们知道了数学上的运算可以写成纯函数，如<code class="highlighter-rouge">f(x) = 2 * x + 3</code>可以写成<code class="highlighter-rouge">def f(x: Int) = x * x + 3</code>，<code class="highlighter-rouge">f(x, y) = x + y</code>写成<code class="highlighter-rouge">def f(x: Int, y: Int) = x + y</code>。</p>
+<p>介绍纯函数时，我们知道了数学上的运算可以写成纯函数，如<code class="language-plaintext highlighter-rouge">f(x) = 2 * x + 3</code>可以写成<code class="language-plaintext highlighter-rouge">def f(x: Int) = x * x + 3</code>，<code class="language-plaintext highlighter-rouge">f(x, y) = x + y</code>写成<code class="language-plaintext highlighter-rouge">def f(x: Int, y: Int) = x + y</code>。</p>
 
 <p>集合里的对象，也就是语言的类型，后面再辟专门的章节讲述。先看看看代数的推导过程，蕴含了哪些值得借鉴的做法。以下是一道简单代数题的求解过程：</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>已知函数f(x + 2) = 2x^2 - 5x + 1，求f(x)。
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>已知函数f(x + 2) = 2x^2 - 5x + 1，求f(x)。
 解：
 设 t = x + 2, 则x = t - 2
 ∴ f(t) = 2 * (t - 2)^2 - 5 * (t - 2) + 1
@@ -53,42 +53,42 @@
 
 <p>可以发现：</p>
 <ul>
-  <li>首先，在整个推导过程中，保持变量含义的不变，从头到尾的一致性。不会突然令<code class="highlighter-rouge">x = 9</code>或别的值，当需要表达其它量时，启用新的变量t，并表述清楚t的来源<code class="highlighter-rouge">t = x + 2</code>，而不是复用原来的变量：<code class="highlighter-rouge">x = x + 2</code>。</li>
+  <li>首先，在整个推导过程中，保持变量含义的不变，从头到尾的一致性。不会突然令<code class="language-plaintext highlighter-rouge">x = 9</code>或别的值，当需要表达其它量时，启用新的变量t，并表述清楚t的来源<code class="language-plaintext highlighter-rouge">t = x + 2</code>，而不是复用原来的变量：<code class="language-plaintext highlighter-rouge">x = x + 2</code>。</li>
 </ul>
 
 <p>有人把变量的<strong>不可变性</strong>视为函数式编程最重要的特性，因为，就像上述推导一样，它喻示着过程的可省视性。仅仅通过阅读代码，就可以理解整个逻辑，而不是指令式编程那样，必须在脑子里”运行”代码。当大脑无法跟踪太多变量的变化时，不得不借用纸笔或调试工具来debug，只消几层的if判断就足以把人绕晕。有了不可变性，可以放心地将代码的各个部分分离开，独立解读，脑子里要保留、跟踪的信息几乎不随代码规模的增长而增加。</p>
 
 <ul>
-  <li>其次，在值相同的情况下，符号和表达式可以互相替代，如<code class="highlighter-rouge">t</code>和<code class="highlighter-rouge">x + 2</code>在通篇任意位置可以互相替代，这种替代在数学上叫<strong>换元</strong>，用于辅助推导，并不改变语义。</li>
+  <li>其次，在值相同的情况下，符号和表达式可以互相替代，如<code class="language-plaintext highlighter-rouge">t</code>和<code class="language-plaintext highlighter-rouge">x + 2</code>在通篇任意位置可以互相替代，这种替代在数学上叫<strong>换元</strong>，用于辅助推导，并不改变语义。</li>
 </ul>
 
 <p>若要在代码层面“换元”，则要求满足引用透明，引用透明辅助编译器对代码做优化，如果没有引用透明，编译器无法自由地替换“表达式“和“值”，因为前后两次的执行结果可能不同，哪怕结果完全一样，程序只能无奈地一次次对该表达式做求值操作。也不能改变表达式的顺序，因为前后两次的求值结果可能不一样，进而限制了程序的并发性。</p>
 
 <p>代数也是一门语言，它用数学模型描述现实世界，并解决逻辑问题。如果把它也看成一门编程语言，它应该归入什么类别呢？大概“面向表达式语言”是比较合理的分类。没错，表达式！看上面代数题的求解过程，本质是表达式的归约操作、合并同类项操作。所谓归约，就是将每个最内层可归约表达式用其值来替换，这样又形成了新的最内层可归约表达式，然后再对其进行归约，最后，整个程序全部被归约，仅留下最终结果。</p>
 
-<p>所以，用它解决问题的过程应该是，用数字或符号描述现实世界，如直角三角形的两和直角边长度分别为a和b，依据放之四海而皆准的公理，如勾股定理，构建它们的逻辑关系，如斜边<code class="highlighter-rouge">c^2 = a^2 + b^2</code>
+<p>所以，用它解决问题的过程应该是，用数字或符号描述现实世界，如直角三角形的两和直角边长度分别为a和b，依据放之四海而皆准的公理，如勾股定理，构建它们的逻辑关系，如斜边<code class="language-plaintext highlighter-rouge">c^2 = a^2 + b^2</code>
 ，再用加减乘除等运算操作，简化、规约表达式，求得斜边长度。这一过程中，我们并没有过问这些变量寄存在哪里（有人直接在脑子里算，也有人要在纸上演算），也不关心它们是否复用了同一块内存，会不会被其它人错误地读写了。我们关心的是想要什么，得到结果的逻辑是什么，而不是如何赋值、如何改写变量。前者是人类擅长的，后者是机器擅长的。我们应让机器服务人类，而不是反过来，人类迁就机器。为此，我们需要一个工具，把高阶的人类思维忠实地转换为低阶的机器语言。</p>
 
-<p>函数式语言就是这样的工具，它有一个少为人知的别名，正是“面向表达式语言”。<strong>表达式</strong>是值和逻辑（函数）的组合，讲究如何编织逻辑以创建新的值，执行的过程即是规约化得到最终结果的过程，如：<code class="highlighter-rouge">val total = sum(list)</code>，sum是一个求和的运算逻辑，通过这个逻辑得到值<code class="highlighter-rouge">sum</code>。 与之相反的是<strong>指令式</strong>，用一系列的执行单元，告诉计算机如何改变指令计数器、数据存储器、当前计数状态等，通过状态的改变得到最终结果，如：<code class="highlighter-rouge">list.sum()</code>，sum是个运算指令，它不返回计算的值，而是改变了某个状态，通过读取这个状态的地址得到结果。</p>
+<p>函数式语言就是这样的工具，它有一个少为人知的别名，正是“面向表达式语言”。<strong>表达式</strong>是值和逻辑（函数）的组合，讲究如何编织逻辑以创建新的值，执行的过程即是规约化得到最终结果的过程，如：<code class="language-plaintext highlighter-rouge">val total = sum(list)</code>，sum是一个求和的运算逻辑，通过这个逻辑得到值<code class="language-plaintext highlighter-rouge">sum</code>。 与之相反的是<strong>指令式</strong>，用一系列的执行单元，告诉计算机如何改变指令计数器、数据存储器、当前计数状态等，通过状态的改变得到最终结果，如：<code class="language-plaintext highlighter-rouge">list.sum()</code>，sum是个运算指令，它不返回计算的值，而是改变了某个状态，通过读取这个状态的地址得到结果。</p>
 
 <p>指令式语言让我们从低级语言的内存、栈、寄存器等概念中解脱，却依然是指令运行过程的封装：循环、锁、线程、并发。函数式语言则进一步抽象，更多地让编译器、解析器处理这些概念，让人腾出更多精力关注数据模型、关注业务逻辑。</p>
 
-<h3 id="函数的组合">函数的组合</h3>
+<h5 id="函数的组合">函数的组合</h5>
 <p>他山之石，可以攻玉。我们回头再挖掘下代数里可以借鉴的特质。</p>
-<div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code>如果f(x) = 3x - 1，且g(x) = x^3 + 2，那么f(g(3))的值是多少？
+<div class="language-markdown highlighter-rouge"><div class="highlight"><pre class="highlight"><code>如果f(x)=3x-1，且g(x)=x^3+2，那么f(g(3))的值是多少？
 </code></pre></div></div>
-<p>间接的做法是，先求得<code class="highlighter-rouge">g(3) = 29</code>，进而<code class="highlighter-rouge">f(g(3)) = f(29) = 86</code>。那么，有没有直接的做法呢？</p>
+<p>间接的做法是，先求得<code class="language-plaintext highlighter-rouge">g(3) = 29</code>，进而<code class="language-plaintext highlighter-rouge">f(g(3)) = f(29) = 86</code>。那么，有没有直接的做法呢？</p>
 
-<p><img src="/img/201810/compose_func.png" alt="compose" /></p>
+<p><img src="/img/compose_func.png" alt="compose" /></p>
 
-<p>为了直接计算<code class="highlighter-rouge">f(g(x))</code>，我们得<strong>组合</strong>（Composition）f和g这两个函数。由于<code class="highlighter-rouge">g(x)</code>是<code class="highlighter-rouge">f(x)</code>的输入，可以把<code class="highlighter-rouge">f(x)</code>的各个<code class="highlighter-rouge">x</code>替换为<code class="highlighter-rouge">g(x)</code>，得到<code class="highlighter-rouge">f(g(x)) = 3g(x)-1 = 3x^3+5</code>，即是图中绿线所表示的函数。</p>
+<p>为了直接计算<code class="language-plaintext highlighter-rouge">f(g(x))</code>，我们得<strong>组合</strong>（Composition）f和g这两个函数。由于<code class="language-plaintext highlighter-rouge">g(x)</code>是<code class="language-plaintext highlighter-rouge">f(x)</code>的输入，可以把<code class="language-plaintext highlighter-rouge">f(x)</code>的各个<code class="language-plaintext highlighter-rouge">x</code>替换为<code class="language-plaintext highlighter-rouge">g(x)</code>，得到<code class="language-plaintext highlighter-rouge">f(g(x)) = 3g(x)-1 = 3x^3+5</code>，即是图中绿线所表示的函数。</p>
 
-<p>在Scala里，<code class="highlighter-rouge">Function1</code>接口定义了<code class="highlighter-rouge">compose</code>方法和<code class="highlighter-rouge">andThen</code>方法，均可以用来组合单参数函数。<code class="highlighter-rouge">f(g(x))</code>可以写成：</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">f</span><span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">"f: "</span> <span class="o">+</span> <span class="n">s</span>
-<span class="k">def</span> <span class="n">g</span><span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">"g: "</span> <span class="o">+</span> <span class="n">s</span>
+<p>在Scala里，<code class="language-plaintext highlighter-rouge">Function1</code>接口定义了<code class="language-plaintext highlighter-rouge">compose</code>方法和<code class="language-plaintext highlighter-rouge">andThen</code>方法，均可以用来组合单参数函数。<code class="language-plaintext highlighter-rouge">f(g(x))</code>可以写成：</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">f</span><span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">"f: "</span> <span class="o">+</span> <span class="n">s</span>
+<span class="k">def</span> <span class="nf">g</span><span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">"g: "</span> <span class="o">+</span> <span class="n">s</span>
 
-<span class="k">def</span> <span class="n">fg</span> <span class="k">=</span> <span class="n">f</span> <span class="k">_</span> <span class="n">compose</span> <span class="n">g</span>
-<span class="k">def</span> <span class="n">fg2</span> <span class="k">=</span> <span class="n">g</span> <span class="k">_</span> <span class="n">andThen</span> <span class="n">f</span>
+<span class="k">def</span> <span class="nf">fg</span> <span class="k">=</span> <span class="n">f</span> <span class="k">_</span> <span class="n">compose</span> <span class="n">g</span>
+<span class="k">def</span> <span class="nf">fg2</span> <span class="k">=</span> <span class="n">g</span> <span class="k">_</span> <span class="n">andThen</span> <span class="n">f</span>
 </code></pre></div></div>
 <p>注意，”_“表示Eta expansion。</p>
 
@@ -97,10 +97,6 @@
 <p>我们是如何解决问题的？每当碰到复杂的问题，就把它分解为更小的问题，直到问题足够小，小到我们可以写代码解决它。然后，再组合这些小颗粒度的代码，形成原始问题的解决方案。问题规模的限制并不是计算机强加给我们的，而是人类大脑的限制。1956年发表的著名论文《神奇的数字 7，加减 2：人类信息加工容量的某些局限》指出，不管记忆的内容怎么变化，是数字，字母，数字 + 字母，还是从 1000 个单音节单词中随机选，人们在记忆这些材料的时候，大概只能记住 5-9 个。所以，我们必须把一次性可以处理的代码块规模控制在大脑可以接受的程度。所谓”优雅代码”，不是结构清晰、简洁所能概括的，更切中要害的说法是，可被有限的大脑带宽处理。</p>
 
 <p>分解本身不是目的，解决问题需要重组这些子块，如果无法重新组合，分解的意义就不存在。什么样的函数能组合呢？显然，一个函数的输出类型必须和另一个函数的输入类型保持一致。至少在函数式语言内，这是”类型”概念存在的根本原因。有关类型，我们后面再详谈。</p>
-
-<hr />
-
-<p><em>本文节选自<a href="https://github.com/vitrun/scalazen">《函数式思维学习录》</a></em></p>
 
     </div>
 </div>
@@ -117,7 +113,7 @@ var disqus_developer = 1;
  *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
 var disqus_config = function () {
     this.page.url = "http://localhost:4000/computer/2018/10/29/fp-algebra.html";  // Replace PAGE_URL with your page's canonical URL variable
-    this.page.identifier = "像代数推导一样编程"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    this.page.identifier = "像代数推导一般"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
 };
 
 (function() { // DON'T EDIT BELOW THIS LINE

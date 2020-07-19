@@ -28,49 +28,49 @@
 
 <p>纯函数的两个优良品质，为它赢得了很多优势。</p>
 
-<h4 id="引用透明">引用透明</h4>
+<h5 id="引用透明">引用透明</h5>
 <p>以直接用函数运行的结果替代函数表达式本身而不改变程序的最终结果，称为引用透明（Referential Transparent）。如：</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">x</span> <span class="k">=</span> <span class="s">"hello"</span><span class="o">.</span><span class="n">length</span>
-<span class="k">val</span> <span class="n">y</span> <span class="k">=</span> <span class="s">"world"</span><span class="o">.</span><span class="n">length</span>
-<span class="k">val</span> <span class="n">z</span> <span class="k">=</span> <span class="s">"hello"</span><span class="o">.</span><span class="n">length</span> <span class="o">+</span> <span class="n">y</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">x</span> <span class="k">=</span> <span class="s">"hello"</span><span class="o">.</span><span class="py">length</span>
+<span class="k">val</span> <span class="nv">y</span> <span class="k">=</span> <span class="s">"world"</span><span class="o">.</span><span class="py">length</span>
+<span class="k">val</span> <span class="nv">z</span> <span class="k">=</span> <span class="s">"hello"</span><span class="o">.</span><span class="py">length</span> <span class="o">+</span> <span class="n">y</span>
 </code></pre></div></div>
 <p>如果把第二处”hello”.length换成x，或者反过来，把第二处y换成”world”
 .length，并不改变z的值。这似乎是很显然的事，却是以length是纯函数为前提的，换成随机数生成函数、获取当前时间的函数，就不能替换。如果改变函数范围外的变量，也会破坏引用透明，如：</p>
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">var</span> <span class="n">total</span> <span class="k">=</span> <span class="mi">0</span>
-<span class="k">def</span> <span class="n">add</span><span class="o">(</span><span class="n">v</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
+<span class="k">def</span> <span class="nf">add</span><span class="o">(</span><span class="n">v</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="o">{</span>
     <span class="n">total</span> <span class="o">+=</span> <span class="n">v</span>
     <span class="n">total</span>
 <span class="o">}</span>
 
-<span class="k">val</span> <span class="n">t1</span> <span class="k">=</span> <span class="n">add</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
-<span class="n">t1</span> <span class="o">==</span> <span class="n">add</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>  <span class="c1">//false
-</span></code></pre></div></div>
+<span class="k">val</span> <span class="nv">t1</span> <span class="k">=</span> <span class="nf">add</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="n">t1</span> <span class="o">==</span> <span class="nf">add</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>  <span class="c1">//false</span>
+</code></pre></div></div>
 
-<h4 id="记忆">记忆</h4>
+<h5 id="记忆">记忆</h5>
 <p>引用透明很好，可避免函数的反复执行，但毕竟还是需要人工替换，如果函数自身能智能地实现一次计算，多处使用就好了。可喜的是，对于纯函数，编译器可以实施名为”记忆”（Memoization)的优化技术，正是达到这个效果。特别是执行很费时的函数，把结果缓存起来，当下次用相同入参调用时，便可直接返回缓存的结果，不再重新计算，大大提高程序的效率。当然，通过把入参和结果作为键值对保存在Map中，我们可以自己实现缓存过程，方便控制缓存策略。用通常不太缺乏的内存空间换取宝贵的计算时间，这是计算机科学里常用的”伎俩”。</p>
 
-<h4 id="缓求值">缓求值</h4>
-<p>缓求值(Lazy Evaluation)，指尽可能地推迟求解表达式，是函数式编程语言常见的一种特性。Scala通过lazy关键字声明缓求值。缓求不会在遇到表达式时就触发运行，而是在用到的时候才真实计算。缓求在记忆之外，为昂贵的运算提供了另一种优化手段。如，以下判断质数的函数，虽然表达式<code class="highlighter-rouge">isPrimeSlow(num)</code>在if判断前面，但只有当输入为奇数时，才会真正被执行。</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">isPrimeSlow</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span>  <span class="mi">2</span> <span class="n">until</span> <span class="n">num</span> <span class="n">forall</span><span class="o">(</span><span class="n">x</span> <span class="k">=&gt;</span> <span class="n">num</span> <span class="o">%</span> <span class="n">x</span> <span class="o">!=</span> <span class="mi">0</span><span class="o">)</span>
+<h5 id="缓求值">缓求值</h5>
+<p>缓求值(Lazy Evaluation)，指尽可能地推迟求解表达式，是函数式编程语言常见的一种特性。Scala通过lazy关键字声明缓求值。缓求不会在遇到表达式时就触发运行，而是在用到的时候才真实计算。缓求在记忆之外，为昂贵的运算提供了另一种优化手段。如，以下判断质数的函数，虽然表达式<code class="language-plaintext highlighter-rouge">isPrimeSlow(num)</code>在if判断前面，但只有当输入为奇数时，才会真正被执行。</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">isPrimeSlow</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span>  <span class="mi">2</span> <span class="n">until</span> <span class="n">num</span> <span class="nf">forall</span><span class="o">(</span><span class="n">x</span> <span class="k">=&gt;</span> <span class="n">num</span> <span class="o">%</span> <span class="n">x</span> <span class="o">!=</span> <span class="mi">0</span><span class="o">)</span>
 
-<span class="k">def</span> <span class="n">isPrime</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="o">{</span>
-  <span class="k">lazy</span> <span class="k">val</span> <span class="n">res</span> <span class="k">=</span> <span class="n">isPrimeSlow</span><span class="o">(</span><span class="n">num</span><span class="o">)</span>
-  <span class="k">if</span> <span class="o">(</span><span class="n">num</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="kc">false</span> <span class="k">else</span> <span class="n">res</span>
+<span class="k">def</span> <span class="nf">isPrime</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="o">{</span>
+  <span class="k">lazy</span> <span class="k">val</span> <span class="nv">res</span> <span class="k">=</span> <span class="nf">isPrimeSlow</span><span class="o">(</span><span class="n">num</span><span class="o">)</span>
+  <span class="nf">if</span> <span class="o">(</span><span class="n">num</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="kc">false</span> <span class="k">else</span> <span class="n">res</span>
 <span class="o">}</span>
 </code></pre></div></div>
 <p>缓求值在集合中的应用更能体现其价值。熟悉Python的同学知道生成器（generator）的概念，应用了缓求了集合与之类似，对于很大的集合，不是一次性生成（或者说根本就没有生成），只是需要的时候才吐出所需的元素。对比intsEager和intsLazy执行效果，便会发现对于寻找大于5的第一个数6而言，intsEager一次性生成了10万个元素，但比6大的元素对于求解结果毫无帮助，白白浪费了内存，简直是暴殄天物。如果把这个形式推到极限，对于有无限个元素的集合，似乎只有缓求方式才能胜任了。这下我们发现了，相比于”记忆”，缓求倒过来了，它是以临时计算来免除需要事先准备好的内存。</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">intsEager</span> <span class="k">=</span> <span class="nc">List</span><span class="o">.</span><span class="n">range</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">100000</span><span class="o">)</span>
-<span class="n">intsEager</span><span class="o">.</span><span class="n">find</span><span class="o">(</span><span class="k">_</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">intsEager</span> <span class="k">=</span> <span class="nv">List</span><span class="o">.</span><span class="py">range</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">100000</span><span class="o">)</span>
+<span class="nv">intsEager</span><span class="o">.</span><span class="py">find</span><span class="o">(</span><span class="k">_</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="o">)</span>
 
-<span class="k">val</span> <span class="n">intsLazy</span> <span class="k">=</span> <span class="mi">0</span> <span class="n">until</span> <span class="mi">100000</span>
-<span class="n">intsLazy</span><span class="o">.</span><span class="n">find</span><span class="o">(</span><span class="k">_</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="o">)</span>
+<span class="k">val</span> <span class="nv">intsLazy</span> <span class="k">=</span> <span class="mi">0</span> <span class="n">until</span> <span class="mi">100000</span>
+<span class="nv">intsLazy</span><span class="o">.</span><span class="py">find</span><span class="o">(</span><span class="k">_</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="o">)</span>
 </code></pre></div></div>
 
 <p>以上，是纯函数为语言提供的额外特性，可以认为是一些与身俱来的优势。接下来分析纯函数为编程实践带来的好处，如何帮助提高代码质量，提高开发效率。</p>
 
-<h4 id="纯函数更易推断">纯函数更易推断</h4>
+<h5 id="纯函数更易推断">纯函数更易推断</h5>
 <p>纯函数的签名已经把它的目的和盘托出了，不需要细看内部实现，就可以相信它没有多干其它小动作，所以不会有超乎签名的副作用和意外效果。经验不足的同学甚至在java的getter类方法中做了写操作：</p>
-<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="n">Integer</span> <span class="nf">getNum</span><span class="o">()</span> <span class="o">{</span>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="nc">Integer</span> <span class="nf">getNum</span><span class="o">()</span> <span class="o">{</span>
   <span class="k">this</span><span class="o">.</span><span class="na">visit</span> <span class="o">++;</span>
   <span class="k">return</span> <span class="k">this</span><span class="o">.</span><span class="na">num</span><span class="o">;</span>
 <span class="o">}</span>
@@ -78,45 +78,41 @@
 <p>哪怕老手也难免有被糊弄的时候。比如，出乎意料，下面这段代码会访问网络，因为URL的hashCode方法会尝试解析域名。</p>
 <div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">public</span> <span class="kt">void</span> <span class="nf">notPure</span><span class="o">()</span> <span class="o">{</span>
   <span class="k">try</span> <span class="o">{</span>
-    <span class="n">URL</span> <span class="n">url</span> <span class="o">=</span> <span class="k">new</span> <span class="n">URL</span><span class="o">(</span><span class="s">"http://example.com"</span><span class="o">);</span>
-    <span class="n">Sets</span><span class="o">.</span><span class="na">newHashSet</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
-  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">MalformedURLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+    <span class="no">URL</span> <span class="n">url</span> <span class="o">=</span> <span class="k">new</span> <span class="no">URL</span><span class="o">(</span><span class="s">"http://example.com"</span><span class="o">);</span>
+    <span class="nc">Sets</span><span class="o">.</span><span class="na">newHashSet</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+  <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="nc">MalformedURLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
     <span class="c1">//ignored</span>
   <span class="o">}</span>
 <span class="o">}</span>
 </code></pre></div></div>
 <p>纯函数就没有这些问题，这是多么大的心智减负。</p>
 
-<h4 id="纯函数更易组合">纯函数更易组合</h4>
+<h5 id="纯函数更易组合">纯函数更易组合</h5>
 <p>函数的组合（compose)，简单而言，就是把若干函数按一定顺序拼接组成新函数。</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">compose</span><span class="o">[</span><span class="kt">A</span>, <span class="kt">B</span>, <span class="kt">C</span><span class="o">](</span><span class="n">f</span><span class="k">:</span> <span class="kt">B</span> <span class="o">=&gt;</span> <span class="n">C</span><span class="o">,</span> <span class="n">g</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">B</span><span class="o">)</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">C</span> <span class="k">=</span> <span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span> <span class="n">f</span><span class="o">(</span><span class="n">g</span><span class="o">(</span><span class="n">a</span><span class="o">))</span> <span class="o">}</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">compose</span><span class="o">[</span><span class="kt">A</span>, <span class="kt">B</span>, <span class="kt">C</span><span class="o">](</span><span class="n">f</span><span class="k">:</span> <span class="kt">B</span> <span class="o">=&gt;</span> <span class="n">C</span><span class="o">,</span> <span class="n">g</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">B</span><span class="o">)</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">C</span> <span class="k">=</span> <span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span> <span class="nf">f</span><span class="o">(</span><span class="nf">g</span><span class="o">(</span><span class="n">a</span><span class="o">))</span> <span class="o">}</span>
 </code></pre></div></div>
 <p>后续会介绍，组合在函数式编程中有着举足轻重的地位。且看组合的具体应用——优雅的链式调用：</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">x</span> <span class="k">=</span> <span class="n">doThis</span><span class="o">(</span><span class="n">a</span><span class="o">).</span><span class="n">thenThis</span><span class="o">(</span><span class="n">b</span><span class="o">)</span>
-                 <span class="o">.</span><span class="n">andThenThis</span><span class="o">(</span><span class="n">c</span><span class="o">)</span>
-                 <span class="o">.</span><span class="n">doThisToo</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">d</span><span class="o">)</span>
-                 <span class="o">.</span><span class="n">andFinallyThis</span><span class="o">(</span><span class="n">e</span><span class="o">)</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">x</span> <span class="k">=</span> <span class="nf">doThis</span><span class="o">(</span><span class="n">a</span><span class="o">).</span><span class="py">thenThis</span><span class="o">(</span><span class="n">b</span><span class="o">)</span>
+                 <span class="o">.</span><span class="py">andThenThis</span><span class="o">(</span><span class="n">c</span><span class="o">)</span>
+                 <span class="o">.</span><span class="py">doThisToo</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">d</span><span class="o">)</span>
+                 <span class="o">.</span><span class="py">andFinallyThis</span><span class="o">(</span><span class="n">e</span><span class="o">)</span>
 </code></pre></div></div>
 <p>如果不是纯函数，很难想象可以放心地写出这段代码。doThis(a)如果改变了a，会怎么影响doThisToo的行为？如果各步骤共享了状态，拋了异常，代码的整体行为表现是怎样的？正确评估这些问题极其消耗心力。而纯函数的确定性，可以让后续步骤放心地依赖前面步骤的输出，代码的作用如字面语义一样跃然纸上。</p>
 
-<h4 id="纯函数更易测试和定位问题">纯函数更易测试和定位问题</h4>
+<h5 id="纯函数更易测试和定位问题">纯函数更易测试和定位问题</h5>
 <p>唯一能影响函数行为的只有输入参数，没有不为人知的魔法，没有数据库、磁盘读写，所以不用关心函数外的环境因素，进而在不同人的电脑上debug效果一样。同理，指令式编程过程中费时费力的单步调试，此时不再重要了，关心函数的输出即可。</p>
 
-<h4 id="纯函数更易并发">纯函数更易并发</h4>
+<h5 id="纯函数更易并发">纯函数更易并发</h5>
 <p>纯函数保证值不变性，值一旦生成就不再改变，无论是同一线程还是多个线程，都不允许修改。所以连锁都免了，更没有死锁或数据竞态问题了。</p>
 
 <p>因为没有副作用，从出入参就可以看出函数之间的依赖关系，如果前后没有数据依赖，其先后顺序便可以交换，或者在多个线程中独立运行而不相互干涉。如下面代码中，f、g、h在字面上的先后顺序是固定的，但编译器完全可以根据需要改动实际执行顺序，或者优化为并发执行。如果它们有副作用，比如暗地里修改了共享的状态，就不能这么轻巧地优化了。</p>
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">x</span> <span class="k">=</span> <span class="n">f</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">y</span> <span class="k">=</span> <span class="n">g</span><span class="o">(</span><span class="n">b</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">z</span> <span class="k">=</span> <span class="n">h</span><span class="o">(</span><span class="n">c</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">result</span> <span class="k">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="nv">x</span> <span class="k">=</span> <span class="nf">f</span><span class="o">(</span><span class="n">a</span><span class="o">)</span>
+<span class="k">val</span> <span class="nv">y</span> <span class="k">=</span> <span class="nf">g</span><span class="o">(</span><span class="n">b</span><span class="o">)</span>
+<span class="k">val</span> <span class="nv">z</span> <span class="k">=</span> <span class="nf">h</span><span class="o">(</span><span class="n">c</span><span class="o">)</span>
+<span class="k">val</span> <span class="nv">result</span> <span class="k">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span>
 </code></pre></div></div>
 
 <p>我们从回顾众所周知的函数开始，再区分纯函数和非纯函数，进而专注于纯函数式的特点、好处。接下来，如何不是特别说明，提到函数时指的就是纯函数。函数式编程，更准确的说法应该是”纯函数”式编程。纯函数所带来的好处构成了函数式编程的核心优势，这点后续将有更多体现。</p>
-
-<hr />
-
-<p><em>本文节选自<a href="https://github.com/vitrun/scalazen">《函数式思维学习录》</a></em></p>
 
     </div>
 </div>
@@ -132,7 +128,7 @@ var disqus_developer = 1;
  *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
  *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
 var disqus_config = function () {
-    this.page.url = "http://localhost:4000/computer/2018/10/20/why-pure-function.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.url = "http://localhost:4000/computer/2018/10/20/why-pure-fp.html";  // Replace PAGE_URL with your page's canonical URL variable
     this.page.identifier = "纯函数的好处"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
 };
 

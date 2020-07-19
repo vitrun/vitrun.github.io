@@ -69,30 +69,30 @@
 
 <ul>
   <li>有栈协程(Stackful)：有自己的调用栈</li>
-  <li>如<code class="highlighter-rouge">Golang</code>，栈内存可以根据需要进行扩容和缩容，最小一般为内存页长 4KB。</li>
+  <li>如<code class="language-plaintext highlighter-rouge">Golang</code>，栈内存可以根据需要进行扩容和缩容，最小一般为内存页长 4KB。</li>
   <li>无栈协程(Stackless)：没有自己的调用栈</li>
-  <li>如<code class="highlighter-rouge">Python</code>、<code class="highlighter-rouge">Kotlin</code>。上下文通过CPS(continuation-passing-style)保存，在<code class="highlighter-rouge">Kotlin</code>中，就是一个<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines.experimental/-continuation/index.html">Continuation</a>类，可想像成<code class="highlighter-rouge">Callback</code>。</li>
+  <li>如<code class="language-plaintext highlighter-rouge">Python</code>、<code class="language-plaintext highlighter-rouge">Kotlin</code>。上下文通过CPS(continuation-passing-style)保存，在<code class="language-plaintext highlighter-rouge">Kotlin</code>中，就是一个<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines.experimental/-continuation/index.html">Continuation</a>类，可想像成<code class="language-plaintext highlighter-rouge">Callback</code>。</li>
 </ul>
 
-<p>bonus: <code class="highlighter-rouge">CPS</code> vs <code class="highlighter-rouge">Direct Style</code></p>
+<p>bonus: <code class="language-plaintext highlighter-rouge">CPS</code> vs <code class="language-plaintext highlighter-rouge">Direct Style</code></p>
 
 <hr />
 
 <h1 id="协程的使用">协程的使用</h1>
 
-<p><code class="highlighter-rouge">python</code> 版</p>
+<p><code class="language-plaintext highlighter-rouge">python</code> 版</p>
 
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">consumer</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
     <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-        <span class="n">bone</span> <span class="o">=</span> <span class="k">yield</span>  <span class="c"># 接收producer的传参，执行后面代码，直到再次碰到yield后返回producer</span>
-        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\033</span><span class="s">[31;1m[consumer] </span><span class="si">%</span><span class="s">s</span><span class="se">\033</span><span class="s">[0m 消费 </span><span class="si">%</span><span class="s">s "</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">bone</span><span class="p">))</span>
+        <span class="n">bone</span> <span class="o">=</span> <span class="k">yield</span>  <span class="c1"># 接收producer的传参，执行后面代码，直到再次碰到yield后返回producer
+</span>        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\033</span><span class="s">[31;1m[consumer] %s</span><span class="se">\033</span><span class="s">[0m 消费 %s "</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">bone</span><span class="p">))</span>
 
 <span class="k">def</span> <span class="nf">producer</span><span class="p">(</span><span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">):</span>
-    <span class="n">obj1</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj2</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>   <span class="c"># 发None启动消费者</span>
-    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
-        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\033</span><span class="s">[32;1m[producer]</span><span class="se">\033</span><span class="s">[0m 生产 </span><span class="si">%</span><span class="s">s"</span> <span class="o">%</span> <span class="n">n</span><span class="p">)</span>
-        <span class="n">obj1</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj2</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>    <span class="c"># 暂停producer，并切换到consumer</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">obj1</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj2</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>   <span class="c1"># 发None启动消费者
+</span>    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\033</span><span class="s">[32;1m[producer]</span><span class="se">\033</span><span class="s">[0m 生产 %s"</span> <span class="o">%</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">obj1</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj2</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>    <span class="c1"># 暂停producer，并切换到consumer
+</span>        <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div></div>
 
 <p>bonus: 对比子程序</p>
@@ -101,7 +101,7 @@
 
 <h1 id="协程的使用-1">协程的使用</h1>
 
-<p>单步调试，注意<code class="highlighter-rouge">send</code>(1)之后跳到了<code class="highlighter-rouge">yield</code>(2)：</p>
+<p>单步调试，注意<code class="language-plaintext highlighter-rouge">send</code>(1)之后跳到了<code class="language-plaintext highlighter-rouge">yield</code>(2)：</p>
 
 <p><img src="/img/201909/coroutine_trace.png" alt="" /></p>
 
@@ -109,25 +109,25 @@
 
 <h1 id="协程的使用-2">协程的使用</h1>
 
-<p><code class="highlighter-rouge">kotlin</code>版：<a href="https://pl.kotl.in/7s9CC8kSa">playgroud</a></p>
+<p><code class="language-plaintext highlighter-rouge">kotlin</code>版：<a href="https://pl.kotl.in/7s9CC8kSa">playgroud</a></p>
 
-<div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">val</span> <span class="py">channel</span> <span class="p">=</span> <span class="n">Channel</span><span class="p">&lt;</span><span class="n">Int</span><span class="p">&gt;()</span>
+<div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">val</span> <span class="py">channel</span> <span class="p">=</span> <span class="nc">Channel</span><span class="p">&lt;</span><span class="nc">Int</span><span class="p">&gt;()</span>
 
-<span class="n">GlobalScope</span><span class="p">.</span><span class="n">launch</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">x</span> <span class="k">in</span> <span class="m">1</span><span class="o">..</span><span class="m">5</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">println</span><span class="p">(</span><span class="s">"[producer] 生产 $x"</span><span class="p">)</span>
-    <span class="n">channel</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="nc">GlobalScope</span><span class="p">.</span><span class="nf">launch</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">x</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="mi">5</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nf">println</span><span class="p">(</span><span class="s">"[producer] 生产 $x"</span><span class="p">)</span>
+    <span class="n">channel</span><span class="p">.</span><span class="nf">send</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 
-<span class="n">GlobalScope</span><span class="p">.</span><span class="n">launch</span> <span class="p">{</span>
+<span class="nc">GlobalScope</span><span class="p">.</span><span class="nf">launch</span> <span class="p">{</span>
   <span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">println</span><span class="p">(</span><span class="s">"[consumer] 消费 ${channel.receive()}"</span><span class="p">)</span>
+    <span class="nf">println</span><span class="p">(</span><span class="s">"[consumer] 消费 ${channel.receive()}"</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>bonus: 为何<code class="highlighter-rouge">python</code>和<code class="highlighter-rouge">kotlin</code>版输出不同？</p>
+<p>bonus: 为何<code class="language-plaintext highlighter-rouge">python</code>和<code class="language-plaintext highlighter-rouge">kotlin</code>版输出不同？</p>
 
 <hr />
 
@@ -178,27 +178,27 @@
 
 <p>线程/进程是os通过调度算法，保存当前的上下文实现暂停，重新开始的地方不可预期。每次CPU计算的指令数量和代码跑过的CPU时间有关，跑到os分配的cpu时间到达后就会被os强制挂起。</p>
 
-<p><code class="highlighter-rouge">Coroutine</code>是编译器的魔术，通过插入相关的代码使得代码段能够实现分段式的执行，重新开始的地方是<code class="highlighter-rouge">yield</code>关键字指定的，一次一定会运行到<code class="highlighter-rouge">yield</code>语句，所以本质是程序员决定何时挂起。</p>
+<p><code class="language-plaintext highlighter-rouge">Coroutine</code>是编译器的魔术，通过插入相关的代码使得代码段能够实现分段式的执行，重新开始的地方是<code class="language-plaintext highlighter-rouge">yield</code>关键字指定的，一次一定会运行到<code class="language-plaintext highlighter-rouge">yield</code>语句，所以本质是程序员决定何时挂起。</p>
 
 <hr />
 <h1 id="协程的优点">协程的优点</h1>
 
-<div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="c1">// 可以轻松执行以下代码：
-</span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="k">in</span> <span class="m">1</span><span class="o">..</span><span class="m">1000</span><span class="n">_000</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">GlobalScope</span><span class="p">.</span><span class="n">launch</span> <span class="p">{</span>
-      <span class="k">for</span> <span class="p">(</span><span class="n">x</span> <span class="k">in</span> <span class="m">1</span><span class="o">..</span><span class="m">300000</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">println</span><span class="p">(</span><span class="s">"${Thread.currentThread().name} is busy calculating"</span><span class="p">)</span>
+<div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="c1">// 可以轻松执行以下代码：</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="mi">1000_000</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nc">GlobalScope</span><span class="p">.</span><span class="nf">launch</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">x</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="mi">300000</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nf">println</span><span class="p">(</span><span class="s">"${Thread.currentThread().name} is busy calculating"</span><span class="p">)</span>
       <span class="p">}</span>
     <span class="p">}</span>
   <span class="p">}</span>
 
-  <span class="c1">// 视机器配置，可能无法运行下面代码：
-</span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="k">in</span> <span class="m">1</span><span class="o">..</span><span class="m">1000</span><span class="n">_000</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Thread</span> <span class="p">{</span>
-      <span class="k">for</span> <span class="p">(</span><span class="n">x</span> <span class="k">in</span> <span class="m">1</span><span class="o">..</span><span class="m">300000</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">println</span><span class="p">(</span><span class="s">"${Thread.currentThread().name} is busy calculating"</span><span class="p">)</span>
+  <span class="c1">// 视机器配置，可能无法运行下面代码：</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="mi">1000_000</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nc">Thread</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">x</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="mi">300000</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nf">println</span><span class="p">(</span><span class="s">"${Thread.currentThread().name} is busy calculating"</span><span class="p">)</span>
       <span class="p">}</span>
-    <span class="p">}.</span><span class="n">start</span><span class="p">()</span>
+    <span class="p">}.</span><span class="nf">start</span><span class="p">()</span>
   <span class="p">}</span>
 </code></pre></div></div>
 
@@ -260,17 +260,17 @@
 
 <h1 id="kotlin协程">Kotlin协程</h1>
 
-<div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">fun</span> <span class="nf">CoroutineScope</span><span class="p">.</span><span class="n">launch</span><span class="p">(</span>
-    <span class="n">context</span><span class="p">:</span> <span class="n">CoroutineContext</span> <span class="p">=</span> <span class="n">EmptyCoroutineContext</span><span class="p">,</span>
-    <span class="n">start</span><span class="p">:</span> <span class="n">CoroutineStart</span> <span class="p">=</span> <span class="n">CoroutineStart</span><span class="p">.</span><span class="n">DEFAULT</span><span class="p">,</span>
-    <span class="n">block</span><span class="p">:</span> <span class="n">suspend</span> <span class="n">CoroutineScope</span><span class="p">.()</span> <span class="p">-&gt;</span> <span class="n">Unit</span>
-<span class="p">):</span> <span class="n">Job</span>
+<div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">fun</span> <span class="nc">CoroutineScope</span><span class="p">.</span><span class="nf">launch</span><span class="p">(</span>
+    <span class="n">context</span><span class="p">:</span> <span class="nc">CoroutineContext</span> <span class="p">=</span> <span class="nc">EmptyCoroutineContext</span><span class="p">,</span>
+    <span class="n">start</span><span class="p">:</span> <span class="nc">CoroutineStart</span> <span class="p">=</span> <span class="nc">CoroutineStart</span><span class="p">.</span><span class="nc">DEFAULT</span><span class="p">,</span>
+    <span class="n">block</span><span class="p">:</span> <span class="k">suspend</span> <span class="nc">CoroutineScope</span><span class="p">.()</span> <span class="p">-&gt;</span> <span class="nc">Unit</span>
+<span class="p">):</span> <span class="nc">Job</span>
 </code></pre></div></div>
 
-<p><code class="highlighter-rouge">CoroutineContext</code>: 可以理解为协程的上下文，其中一个实现<code class="highlighter-rouge">CoroutineDispatcher</code>支持4种线程模式：</p>
+<p><code class="language-plaintext highlighter-rouge">CoroutineContext</code>: 可以理解为协程的上下文，其中一个实现<code class="language-plaintext highlighter-rouge">CoroutineDispatcher</code>支持4种线程模式：</p>
 <ul>
-  <li>Dispatchers.Default, 默认线程池, <code class="highlighter-rouge">CPU-heavy</code>任务</li>
-  <li><a href="https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html">Dispatchers.IO</a>, 适合<code class="highlighter-rouge">IO-heavy</code>任务</li>
+  <li>Dispatchers.Default, 默认线程池, <code class="language-plaintext highlighter-rouge">CPU-heavy</code>任务</li>
+  <li><a href="https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html">Dispatchers.IO</a>, 适合<code class="language-plaintext highlighter-rouge">IO-heavy</code>任务</li>
   <li>Dispatchers.Main, 主线程</li>
   <li>Dispatchers.Unconfined, 没指定，就是在当前线程</li>
 </ul>
@@ -278,13 +278,13 @@
 <div class="language-kotlin highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">kotlinx.coroutines.*</span>
 
 <span class="k">fun</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">GlobalScope</span><span class="p">.</span><span class="n">launch</span> <span class="p">{</span> <span class="c1">// launch a new coroutine in background and continue
-</span>        <span class="n">delay</span><span class="p">(</span><span class="m">1000L</span><span class="p">)</span> <span class="c1">// non-blocking delay for 1 second (default time unit is ms)
-</span>        <span class="n">println</span><span class="p">(</span><span class="s">"World!"</span><span class="p">)</span> <span class="c1">// print after delay
-</span>    <span class="p">}</span>
-    <span class="n">println</span><span class="p">(</span><span class="s">"Hello,"</span><span class="p">)</span> <span class="c1">// main thread continues while coroutine is delayed
-</span>    <span class="n">Thread</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="m">2000L</span><span class="p">)</span> <span class="c1">// block main thread for 2 seconds to keep JVM alive
-</span><span class="p">}</span>
+    <span class="nc">GlobalScope</span><span class="p">.</span><span class="nf">launch</span> <span class="p">{</span> <span class="c1">// launch a new coroutine in background and continue</span>
+        <span class="nf">delay</span><span class="p">(</span><span class="mi">1000L</span><span class="p">)</span> <span class="c1">// non-blocking delay for 1 second (default time unit is ms)</span>
+        <span class="nf">println</span><span class="p">(</span><span class="s">"World!"</span><span class="p">)</span> <span class="c1">// print after delay</span>
+    <span class="p">}</span>
+    <span class="nf">println</span><span class="p">(</span><span class="s">"Hello,"</span><span class="p">)</span> <span class="c1">// main thread continues while coroutine is delayed</span>
+    <span class="nc">Thread</span><span class="p">.</span><span class="nf">sleep</span><span class="p">(</span><span class="mi">2000L</span><span class="p">)</span> <span class="c1">// block main thread for 2 seconds to keep JVM alive</span>
+<span class="p">}</span>
 </code></pre></div></div>
 <hr />
 

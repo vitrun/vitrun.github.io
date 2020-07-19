@@ -5,9 +5,827 @@
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 06 Jan 2020 16:52:55 +0800</pubDate>
-    <lastBuildDate>Mon, 06 Jan 2020 16:52:55 +0800</lastBuildDate>
-    <generator>Jekyll v3.7.3</generator>
+    <pubDate>Sun, 19 Jul 2020 21:39:13 +0800</pubDate>
+    <lastBuildDate>Sun, 19 Jul 2020 21:39:13 +0800</lastBuildDate>
+    <generator>Jekyll v3.8.7</generator>
+    
+      <item>
+        <title>monkey patch in go</title>
+        <description>&lt;h2 id=&quot;什么是monkey-patch&quot;&gt;什么是monkey patch&lt;/h2&gt;
+
+&lt;p&gt;早前的一个python项目遇到性能瓶颈，试图用对标准库做&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;monkey
+patch&lt;/code&gt;，在不改源码的情况下，用&lt;a href=&quot;http://www.gevent.org/api/gevent.monkey.html&quot;&gt;gevent&lt;/a&gt;让标准库用上非阻塞IO。
+留下的印象是以为在&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python&lt;/code&gt;等动态语言里才有&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;monkey patch&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;偶然看到&lt;a href=&quot;https://github.com/bouk/monkey&quot;&gt;bouk/monkey&lt;/a&gt;，才发现，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;语言也可以实现。好奇之下，研究了它的原理。作者有个&lt;a href=&quot;https://bou.ke/blog/monkey-patching-in-go/&quot;&gt;博客&lt;/a&gt;，讲得很好，但缺了很多细节和过程。于是，从问题源头出发，自己理一遍，收益良多：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;程序的编译、连接与执行&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;工具&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;compile&lt;/code&gt;与&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;objdump&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;函数值实现&lt;/li&gt;
+  &lt;li&gt;plan9汇编&lt;/li&gt;
+  &lt;li&gt;X86指令、寄存器&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;魔法&quot;&gt;魔法&lt;/h2&gt;
+&lt;p&gt;简单来说，通过&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;monkey patch&lt;/code&gt;，以下代码将输出”2”而不是”1”：&lt;/p&gt;
+
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;不难看出，魔法都藏在&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;replace&lt;/code&gt;函数里：需要修改&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a&lt;/code&gt;函数，使其不执行自己的函数体，而是跳转到函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;为了讲清楚如何实现，得先铺垫几点背景知识。&lt;/p&gt;
+
+&lt;h2 id=&quot;go与汇编&quot;&gt;go与汇编&lt;/h2&gt;
+
+&lt;p&gt;在&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;项目里使用汇编是件很容易的事。&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;代码&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;func.go&lt;/code&gt;里只声明函数：&lt;/p&gt;
+
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;汇编代码&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;func.s&lt;/code&gt;里，实现两函数，这里，我们让&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a&lt;/code&gt;函数跳转到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;函数：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-assembly&quot;&gt;#include &quot;textflag.h&quot;
+
+TEXT ·a(SB), NOSPLIT, $0-8
+  JMP ·b(SB)
+
+TEXT ·b(SB), NOSPLIT, $0-8
+  MOVQ $2, ret1+0(FP)
+  RET
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;把&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;func.go&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;func.s&lt;/code&gt;放到同一目录，然后执行：
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;GO111MODULE=&quot;off&quot;; go build -o func &amp;amp;&amp;amp;
+./func&lt;/code&gt;。这段代码定义了两个函数，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a&lt;/code&gt;函数直接跳转到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;函数，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;返回整数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;2&lt;/code&gt;。至此，没什么大不了，手动实现跳转而已。&lt;/p&gt;
+
+&lt;p&gt;关于汇编的语法，不是本文的重点，可以参考文后链接。&lt;/p&gt;
+
+&lt;h2 id=&quot;go的函数值类型&quot;&gt;go的函数值类型&lt;/h2&gt;
+
+&lt;p&gt;手动跳转显然不够，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;replace(f, g)&lt;/code&gt;的职责就动态改变函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f&lt;/code&gt;的代码，分两步：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;取得函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;的地址&lt;/li&gt;
+  &lt;li&gt;重写&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f&lt;/code&gt;，使其跳转到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;需要指出的是，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;replace&lt;/code&gt;的入参&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f&lt;/code&gt;或&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;很容易被误解为函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a&lt;/code&gt;或&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;的指针，但其实它们是指针的指针。这点可以通过反编译来验证，保存下面代码到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;funcaddr.go&lt;/code&gt;：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;fmt&quot;&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;unsafe&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;fmt&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Printf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;0x%x&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;执行&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt; go build funcaddr.go &amp;amp;&amp;amp; ./funcaddr&lt;/code&gt;得到：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x109adc0&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;再执行&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go tool objdump -S funcaddr&lt;/code&gt;，搜索这个地址，发现确实是&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a&lt;/code&gt;函数的地址：&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-assembly&quot;&gt;TEXT main.a(SB) funcaddr.go
+func a() int { return 1 }
+  0x109adc0             48c744240801000000      MOVQ $0x1, 0x8(SP)
+  0x109adc9             c3                      RET
+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Ok，通过函数值&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f&lt;/code&gt;可以拿到函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;a&lt;/code&gt;的地址了。为什么要拿到地址呢？&lt;/p&gt;
+
+&lt;h2 id=&quot;在运行时改写函数&quot;&gt;在运行时改写函数&lt;/h2&gt;
+
+&lt;p&gt;函数体本质是一段字符串，知道开始地址后，从那里开始写入表示新逻辑的字符串即可实现覆盖。随之而来的问题是：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;新逻辑的字符串是什么？&lt;/li&gt;
+  &lt;li&gt;如何知道覆盖的范围？&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;因为新的字符串要能直接被机器运行，所以它必须是机器码。把汇编翻译成机器码，并不是件容易的事，同一段汇编在不同平台得到的机器不尽相同。如果想手动翻译，可参考文后链接。&lt;/p&gt;
+
+&lt;p&gt;我用了一个取巧的方式，反翻译上面的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;func&lt;/code&gt;: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go tool objdump -S
+func&lt;/code&gt;，找到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main.a&lt;/code&gt;的定义：&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;TEXT main.a(SB) func.s
+  0x1054e70         e90b000000           JMP main.b(SB)
+  //...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;其中，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;e90b000000&lt;/code&gt;就是跳转到函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;的机器码。终于可以来实现&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;replace&lt;/code&gt;函数了：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rawMemoryAccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0xFF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;bytes&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0xe9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x0b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;funcLocation&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;window&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rawMemoryAccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcLocation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;copy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;window&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bytes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;逻辑实现了，但这段代码是无法运行的。因为加载的二进制文件&lt;a href=&quot;https://en.wikipedia.org/wiki/Segmentation_fault#Writing_to_read-only_memory&quot;&gt;默认是无法修改的&lt;/a&gt;，即&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;copy&lt;/code&gt;这行将报错。我们用系统调用&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mprotect&lt;/code&gt;来关闭这一保护机制，得到可用的代码：&lt;/p&gt;
+
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;//go:noinline&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;syscall&quot;&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;unsafe&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rawMemoryAccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0xFF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getPage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0xFFFFFF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;^&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;syscall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Getpagesize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))))[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;syscall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Getpagesize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()]&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assembleJump&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;g&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0xe9&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x0b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x00&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;bytes&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assembleJump&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;functionLocation&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;window&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rawMemoryAccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;functionLocation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;page&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;getPage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;functionLocation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;syscall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Mprotect&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;page&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;syscall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PROT_READ&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;syscall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PROT_WRITE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;syscall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PROT_EXEC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  
+  &lt;span class=&quot;nb&quot;&gt;copy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;window&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bytes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;replace&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;nb&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;现在可以直接执行&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go run
+func.go&lt;/code&gt;，因为&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;func.s&lt;/code&gt;只是用于帮助理解，现在不再需要了。
+注意&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;//go:noinine&lt;/code&gt;这行，用于关闭函数内联，这样才能支持改写。&lt;/p&gt;
+
+&lt;p&gt;眼尖的读者可能发现了，这个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;replace&lt;/code&gt;不够通用，还是写死了跳转到函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;b&lt;/code&gt;而不是指定的函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;，实际上&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;参数根本没用上！
+为了通用，我们改造&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;assembleJump&lt;/code&gt;，让跳转的机器码使用&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;所指向的地址：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assembleJump&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;funcVal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;unsafe&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Pointer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;m&quot;&gt;0x48&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0xC7&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0xC2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcVal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcVal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcVal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;byte&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcVal&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;24&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;c&quot;&gt;// MOV rdx, funcVal&lt;/span&gt;
+    &lt;span class=&quot;m&quot;&gt;0xFF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;0x22&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;          &lt;span class=&quot;c&quot;&gt;// JMP rdx&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;这里不是直接&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jmp&lt;/code&gt;到函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;，而是先把&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g&lt;/code&gt;的地址存到寄存器&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;rdx&lt;/code&gt;，再&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;jmp&lt;/code&gt;到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;rdx&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;用这个通用的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;assembleJump&lt;/code&gt;替换上面返回固定值的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;assembleJump&lt;/code&gt;，大功造成。&lt;/p&gt;
+
+&lt;h2 id=&quot;monkey-patch的应用&quot;&gt;monkey patch的应用&lt;/h2&gt;
+
+&lt;p&gt;显然，这是一种hack，不能用于生产环境。随着go版本的迭代，没准不久的将来就失效了。如果仔细观察，会发现我们手写的汇编或者机器码，比&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;编译得到的少了些含有&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FUNCDATA&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PCDATA&lt;/code&gt;字眼的内容：&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  0x0000 00000 (func.go:9) FUNCDATA        $0,
+gclocals·33cdeccccebe80329f1fdbee7f5874cb(
+SB)
+  0x0000 00000 (func.go:9) FUNCDATA        $1,
+gclocals·33cdeccccebe80329f1fdbee7f5874cb(
+SB)
+  0x0000 00000 (func.go:9) FUNCDATA        $2,
+gclocals·33cdeccccebe80329f1fdbee7f5874cb(
+SB)
+  0x0000 00000 (func.go:9) PCDATA  $0, $0
+  0x0000 00000 (func.go:9) PCDATA  $1, $0
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PCDATA&lt;/code&gt;把程序计数器和代码行号对应起来，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FUNCDATA&lt;/code&gt;则是为垃圾回收服务的，详见&lt;a href=&quot;https://www.altoros.com/blog/golang-internals-part-4-object-files-and-function-metadata/&quot;&gt;Object
+Files and Function
+Metadata&lt;/a&gt;。缺少它们，相应功能就有缺陷。&lt;/p&gt;
+
+&lt;p&gt;难道，只能用于装逼了？&lt;/p&gt;
+
+&lt;p&gt;不，有一个场合正是用武之地：测试。将它用于打桩，让用户在单元测试中低成本的完成mock。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go&lt;/code&gt;的各种mock工具都只能对&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;类型做mock。虽然我们一直提倡依赖倒置，现实中，还是有很多代码直接依赖了具体实现，给mock带来不必要的麻烦。&lt;/p&gt;
+
+&lt;p&gt;正好，黑魔法般的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;monkey
+patch&lt;/code&gt;来搭救了。使用封装好的&lt;a href=&quot;https://github.com/bouk/monkey&quot;&gt;monkey&lt;/a&gt;，可以非常简单地实现对非&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;依赖的mock。&lt;/p&gt;
+
+&lt;p&gt;举个例子，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RpcClient&lt;/code&gt;是个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;struct&lt;/code&gt;，代表外部rpc调用：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rpc&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;RpcClient&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rpc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RpcClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SayHello&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;// call remote endpoint&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello world&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;在测试时mock这个rpc调用，返回指定内容：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;package&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rpc&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;bou.ke/monkey&quot;&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;github.com/stretchr/testify/assert&quot;&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;reflect&quot;&lt;/span&gt;
+  &lt;span class=&quot;s&quot;&gt;&quot;testing&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TestSayHello&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;testing&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RpcClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+
+  &lt;span class=&quot;n&quot;&gt;fakeRpc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;monkey&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PatchInstanceMethod&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;reflect&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TypeOf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;SayHello&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rpcClient&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RpcClient&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hi five&quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;defer&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fakeRpc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Unpatch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+  
+  &lt;span class=&quot;n&quot;&gt;msg&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;client&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SayHello&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;assert&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Equal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;t&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hi five&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;msg&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;执行测试时，需要关闭内联：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go test -gcflags=-l&lt;/code&gt;。&lt;/p&gt;
+
+&lt;h2 id=&quot;参考链接&quot;&gt;参考链接&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;http://www.mit.edu/afs.new/sipb/project/golang/doc/asm.html&quot;&gt;A Quick Guide to Go’s
+Assembler&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/teh-cmc/go-internals/blob/master/chapter1_assembly_primer/README.md#a-word-about-goroutines-stacks-and-splits&quot;&gt;A Primer on Go
+Assembly&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.systutorials.com/beginners-guide-x86-64-instruction-encoding/&quot;&gt;A Beginners’ Guide to x86-64 Instruction
+Encoding&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://wiki.osdev.org/X86-64_Instruction_Encoding&quot;&gt;X86-64 Instruction
+Encoding&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Sat, 20 Jun 2020 12:15:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2020/06/20/go-monkey-patch.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2020/06/20/go-monkey-patch.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
+    
+      <item>
+        <title>Go性能诊断工具pprof入门</title>
+        <description>&lt;p&gt;测试环境一个api应用突然cpu飙高，稳定在98%……&lt;/p&gt;
+
+&lt;p&gt;第一反应是jstack看下是不是代码里有死循环了？然而这是go不是java，只能在go的生态里重新寻找类似工具。&lt;/p&gt;
+
+&lt;p&gt;切换语言时，除了改变写代码的语言，有必要&lt;strong&gt;熟悉维护应用、定位问题的工具链&lt;/strong&gt;。这里简单介绍go pprof的使用，以求需要时不必临时google，能以最快速度开始定位问题。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;pprof is a tool for visualization and analysis of profiling data.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;安装请执行：
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go get -u github.com/google/pprof&lt;/code&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;cpu-profile&quot;&gt;cpu profile&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;找到容器的IP和debug端口对应的访问端口。&lt;/li&gt;
+  &lt;li&gt;执行&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go tool pprof -http=:6061 http://$ip:$port/debug/pprof/profile&lt;/code&gt;
+需要一段时间来采样，耐心等待下。采样结束后，将自动在浏览器中打开可视化分析页面。不加&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-http=:6061&lt;/code&gt;时将在终端使用命令行方式交互。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;采样数据默认放到~/pprof/目录下，可通过以下命令直接指定文件进行分析。
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go tool pprof -http=:6061 ~/pprof/xxx.pb.gz&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;top-view&quot;&gt;Top view&lt;/h4&gt;
+&lt;p&gt;效果如下：
+&lt;img src=&quot;/img/202005/ppro-1.jpg&quot; alt=&quot;IMAGE&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;重点是理解&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Flat&lt;/code&gt;、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Sum&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Cum&lt;/code&gt;三个指标。对于函数&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;foo&lt;/code&gt;：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;foo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(){&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;                             &lt;span class=&quot;c&quot;&gt;// step1 takes 1s&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;                             &lt;span class=&quot;c&quot;&gt;// step2 takes 1s&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;do&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;something&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;directly&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;          &lt;span class=&quot;c&quot;&gt;// step3 takes 3s&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;                             &lt;span class=&quot;c&quot;&gt;// step4 takes 1s&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;flat&lt;/code&gt;是step3的耗时，即3s。&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cum&lt;/code&gt;是&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;foo&lt;/code&gt;的整体耗时，包括子函数和直接指令的耗时，即6s。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sum&lt;/code&gt;是截至当前行的累计耗时。&lt;/p&gt;
+
+&lt;p&gt;上图的例子是调用了一次api的效果（服务器没有其它请求），耗时27s，大部分时间花在&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go-polaris&lt;/code&gt;这个库内，无论哪个指标出发，都很显然要重点看看&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;scanAttrEql&lt;/code&gt;函数(结论是该函数死循环了)。&lt;/p&gt;
+
+&lt;h4 id=&quot;graph-view&quot;&gt;Graph view&lt;/h4&gt;
+&lt;p&gt;按调用层级从上到下显示调用图，需要安装&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;graphviz&lt;/code&gt;：
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;brew install graphviz&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;括号内的数值同top view。框的大小和箭头的粗细会随着耗时和增加而变大，比较直观。&lt;/p&gt;
+
+&lt;h4 id=&quot;flame-graph&quot;&gt;Flame graph&lt;/h4&gt;
+&lt;p&gt;倒置的火焰图，更常见的形式，也很直观。不展开，可参考&lt;a href=&quot;https://www.ruanyifeng.com/blog/2017/09/flame-graph.html&quot;&gt;如何读懂火焰图？&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;memory-profile&quot;&gt;memory profile&lt;/h3&gt;
+&lt;p&gt;执行:
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go tool pprof -http=:6061 http://$ip:$port/debug/pprof/heap&lt;/code&gt;
+几个view的解读同cpu profile，不再重复。需要指出的是内存分析比较关心的两个指标，通过在命令中添加以下参数可以获得：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;-inuse_space&lt;/strong&gt;：分析程序&lt;strong&gt;常驻&lt;/strong&gt;内存的占用情况，数值大说明程序当前时刻内存占用较多。&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;-alloc_objects&lt;/strong&gt;：分析内存的&lt;strong&gt;临时分配&lt;/strong&gt;情况，记录程序累计分配的对象，数值大说明有很多对象经常需要临时分配，然后在gc的时候又被释放，对gc的影响比较大。gcPause问题比较严重的时候可以关注这个指标。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;其它profile&quot;&gt;其它profile&lt;/h3&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cpu&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;memory&lt;/code&gt;是常用的的profile类型，值得事先花点时间掌握，其余的可在碰到需求时临时查阅文档。&lt;/p&gt;
+
+&lt;p&gt;访问&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://$ip:$port/debug/pprof/&lt;/code&gt;得到整体可供profile的选项：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;cpu（CPU Profiling）: /debug/pprof/profile，默认进行 30s 的 CPU Profiling，得到一个分析用的 profile 文件&lt;/li&gt;
+  &lt;li&gt;block（Block Profiling）：/debug/pprof/block，查看导致阻塞同步的堆栈跟踪&lt;/li&gt;
+  &lt;li&gt;goroutine：/debug/pprof/goroutine，查看当前所有运行的 goroutines 堆栈跟踪&lt;/li&gt;
+  &lt;li&gt;heap（Memory Profiling）: /debug/pprof/heap，查看活动对象的内存分配情况&lt;/li&gt;
+  &lt;li&gt;mutex（Mutex Profiling）：/debug/pprof/mutex，查看导致互斥锁的竞争持有者的堆栈跟踪&lt;/li&gt;
+  &lt;li&gt;threadcreate：/debug/pprof/threadcreate，查看创建新OS线程的堆栈跟踪&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;延伸讨论&quot;&gt;延伸讨论&lt;/h3&gt;
+&lt;h4 id=&quot;启用方式&quot;&gt;启用方式&lt;/h4&gt;
+&lt;p&gt;pprof主要有三种数据获取方式：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;runtime/pprof: 手动调用&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;runtime.StartCPUProfile&lt;/code&gt;或者&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;runtime.StopCPUProfile&lt;/code&gt;等 API来生成和写入采样文件&lt;/li&gt;
+  &lt;li&gt;net/http/pprof: 通过 http 服务获取Profile采样文件，简单易用，适用于对应用程序的整体监控。通过 runtime/pprof 实现。如果在自己的程序中需要支持pprof，推荐此方式，只需要引入这个依赖即可：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;import _ &quot;net/http/pprof&quot;&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;go test: 通过&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;go test -bench . -cpuprofile prof.cpu&lt;/code&gt;生成采样文件 适用对函数进行针对性测试&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;原理&quot;&gt;原理&lt;/h4&gt;
+&lt;p&gt;没有正式的文档，参考golang团队成员ian lance taylor的一段回答：&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;blockquote&gt;
+    &lt;p&gt;Is it true that pprof is a stop-the-world sampler? Does it periodically stop
+the program being profiled to collect information?&lt;/p&gt;
+  &lt;/blockquote&gt;
+
+  &lt;p&gt;No.&lt;/p&gt;
+
+  &lt;p&gt;Is pprof a statistical/stochastic profile?&lt;/p&gt;
+
+  &lt;p&gt;Yes.&lt;/p&gt;
+
+  &lt;blockquote&gt;
+    &lt;p&gt;Is it also an event based profiler?&lt;/p&gt;
+  &lt;/blockquote&gt;
+
+  &lt;p&gt;Yes.&lt;/p&gt;
+
+  &lt;blockquote&gt;
+    &lt;p&gt;I know it doesn’t run at the kernal level, but where in the OS does pprof
+profile?&lt;/p&gt;
+  &lt;/blockquote&gt;
+
+  &lt;p&gt;As you say, the net/http/pprof package is basically a wrapper around
+the runtime/pprof package.&lt;/p&gt;
+
+  &lt;p&gt;For CPU profiling, runtime/pprof works by periodically interrupting
+the program.  On Unix-like systems, this is done using setitimer to
+send a periodic SIGPROF signal.  When this signal arrive, the
+goroutine that receives it stores a stack trace.  This very briefly
+stops the goroutine being profiled, but it doesn’t affect the rest of
+the program.&lt;/p&gt;
+
+  &lt;p&gt;For heap profiling, the memory allocator tracks the number of
+allocations it has done, and periodically records a stack trace.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&quot;overhead&quot;&gt;overhead&lt;/h4&gt;
+&lt;p&gt;凡事都有成本，采样时的成本(只有访问debug profile时才会引入该成本，只是引入依赖不会有成本)：&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;pprof is safe to use in production. We target an additional 5% overhead for CPU and heap allocation profiling&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;另一google员工的描述：&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;At Google, we continuously profile Go production services and it is safe to do so.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;单纯讨论这一成本是高低意义不大，这里涉及一个更大的话题：&lt;a href=&quot;https://medium.com/google-cloud/continuous-profiling-of-go-programs-96d4416af77b&quot;&gt;Continuous Profiling of Go programs&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;参考文档&quot;&gt;参考文档&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/google/pprof/blob/master/doc/README.md&quot;&gt;Google/pprof readme&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://golang.org/pkg/net/http/pprof/&quot;&gt;Package pprof&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://stackoverflow.com/questions/32571396/pprof-and-golang-how-to-interpret-a-results&quot;&gt;Pprof and golang - how to interpret a results
+&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://bytedance.feishu.cn/wiki/wikcnRO5EewsntuRMbB4DPzescf#&quot;&gt;Go pprof 业务中实战&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://groups.google.com/forum/#!topic/golang-nuts/PiFa55aX7Ds&quot;&gt;How does pprof work under the hood&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Sat, 30 May 2020 12:15:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2020/05/30/pprof-tutorial.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2020/05/30/pprof-tutorial.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
+    
+      <item>
+        <title>Go项目单元测试实践</title>
+        <description>&lt;h2 id=&quot;前言&quot;&gt;前言&lt;/h2&gt;
+
+&lt;p&gt;单测本身不是目的，更根本地，要提升工程的可维护性。&lt;/p&gt;
+
+&lt;p&gt;为什么随着时间的推移，工程越来越难维护？因为工程的复杂度的增速快于我们治理复杂度的能力的增速。治理复杂度的能力落地了就是工程的可维护性。&lt;/p&gt;
+
+&lt;p&gt;用线性的手段去治理指数的问题，只在初期可行。长期必须要有一个比问题曲线更陡的能力曲线。&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/202004/go-ut-1.jpg&quot; alt=&quot;IMAGE&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;影响工程复杂度的因素：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;业务的本质复杂性&lt;/li&gt;
+  &lt;li&gt;互联网高人员流动性&lt;/li&gt;
+  &lt;li&gt;文档永远缺失或滞后&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;治理复杂度的能力&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;设计能力&lt;/li&gt;
+  &lt;li&gt;测试能力&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;本文从测试角度出发做一点探讨。首先澄清概念，这里的“测试”专指研发人员自行开展的测试工作，不包括QA同学的工作。&lt;/p&gt;
+
+&lt;p&gt;可能涉及单元、集成、功能测试，用下图说明：&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/202004/go-ut-2.jpg&quot; alt=&quot;IMAGE&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;测试的意义&quot;&gt;测试的意义&lt;/h2&gt;
+&lt;p&gt;常见的说法：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;等项目提测后再补些单测。其心理：
+    &lt;ul&gt;
+      &lt;li&gt;不知有没有意义，tl要求，没办法&lt;/li&gt;
+      &lt;li&gt;有意义，为了方便后续人员维护&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;事后补单测，好比把到女神了，依然热度不减当初，天天嘘寒问暖。是有这样的人，但你是吗？&lt;/p&gt;
+
+&lt;p&gt;另一种认识：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;帮助本人开发现在的功能。&lt;strong&gt;本人&lt;/strong&gt;！&lt;strong&gt;现在&lt;/strong&gt;！
+在没有护栏的高速路狂奔，开得越快，死得越快。
+&lt;img src=&quot;/img/202004/go-ut-3.jpg&quot; alt=&quot;IMAGE&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;帮助提高项目的长度维护性。顺便！
+在&lt;strong&gt;高人员流动&lt;/strong&gt;的情境下实现工程的&lt;strong&gt;长期可维护性&lt;/strong&gt;。
+    &lt;ul&gt;
+      &lt;li&gt;靠员工传承 ✕&lt;/li&gt;
+      &lt;li&gt;靠文档传承 ✕&lt;/li&gt;
+      &lt;li&gt;自解释工程 √&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;test as a doc&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;可用的测试&quot;&gt;可用的测试&lt;/h2&gt;
+
+&lt;p&gt;&lt;strong&gt;低成本&lt;/strong&gt;地实现：&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;可重复运行&lt;/li&gt;
+  &lt;li&gt;可自动运行&lt;/li&gt;
+  &lt;li&gt;不依赖外部环境&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;即，测试本身的scalability&lt;/p&gt;
+
+&lt;p&gt;对比几种测试做法：&lt;/p&gt;
+
+&lt;h4 id=&quot;流程1&quot;&gt;流程1:&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;为case1在db造数据 (每次3m)&lt;/li&gt;
+  &lt;li&gt;本地启用应用（改配置连本地服务) (每次2m)&lt;/li&gt;
+  &lt;li&gt;在postman配置，为case1调api (若能长期保存psotman配置，则每次1m，否则每次5m）&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;流程2&quot;&gt;流程2:&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;为case1在db造数据 (每次3m)&lt;/li&gt;
+  &lt;li&gt;写测试代码 (首次10min，以后0)&lt;/li&gt;
+  &lt;li&gt;运行测试代码 (每次0.1m)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;流程3&quot;&gt;流程3:&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;为case1在代码中靠数据 (首次6m，以后0)&lt;/li&gt;
+  &lt;li&gt;写测试代码 (首次10min，以后0)&lt;/li&gt;
+  &lt;li&gt;运行测试代码 (每次0.1m)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;长期耗时对比：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;流程1：(3+2)&lt;em&gt;n + 5 + 1&lt;/em&gt;(n-1) = 6n+4&lt;/li&gt;
+  &lt;li&gt;流程2：3&lt;em&gt;n + 10 + 0.1&lt;/em&gt;n = 3.1n+10&lt;/li&gt;
+  &lt;li&gt;流程3：6+10+0.1n = 0.1n+16&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/img/202004/go-ut-4.jpg&quot; alt=&quot;IMAGE&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;流程1和2都是非scalable的做法，问题分析：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;流程1，依赖了外部环境，不可重复、无法自动化&lt;/li&gt;
+  &lt;li&gt;流程2，依赖了外部环境，不可重复，可以自动化&lt;/li&gt;
+  &lt;li&gt;流程3，不依赖外部环境，可以重复，可以自动化&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;以为点点postman、连mysql造条数据是图省事，诸不知这是更费事的做法。一个短期、一个长期，本质上都是“偷懒”，省点时间多看看窗外的风景、少掉几根头发。&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Less is exponentially more —— Rob Pike&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;如果认同上述观点，接下来的内容其实不看也没啥损失。因为你总会想出各种手段去“偷懒”的，具体的手段反而关系不大了。换言之，以下方式随时可能被更先进、更scalable的方式替代。&lt;/p&gt;
+
+&lt;h2 id=&quot;工程可测性&quot;&gt;工程可测性&lt;/h2&gt;
+
+&lt;h3 id=&quot;遵守控制反转原则&quot;&gt;遵守控制反转原则&lt;/h3&gt;
+
+&lt;p&gt;并不是所有代码都是可测试的。谈具体测试做法前，得先保证代码的可测性。道理上是极其简单的，即&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;SOLID&lt;/code&gt;原则中的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;D&lt;/code&gt;：&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Any higher classes should always depend upon the abstraction of the class rather than the detail. –&lt;strong&gt;Dependency Inversion Principle&lt;/strong&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;但实践起来并不那么容易。
+比如，业务代码中很常见的repo调用dal的写法：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;repo&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RepositoryImpl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Create&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;user&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;model&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;User&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;// ...&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;userDO&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;convert&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;UserModel2DO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;dal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CreateUser&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;userDO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;c&quot;&gt;// ...&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;比如，调用rpc的写法：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;// 调用rpc：&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;thirdcall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ProduceServiceClient&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;QueryTaskPackPage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pageTaskPackRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;// ProduceServiceClient定义：&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Client&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;kc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kitc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;KitcClient&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;毫无违和感，却是违背&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DI&lt;/code&gt;的，进而限制可测性。&lt;/p&gt;
+
+&lt;p&gt;因为抽象是可变的，实现是固定的。依赖抽象使得测试过程中剥离无关部分（可能是其它系统、也可能是本系统的其它代码）成为可能。而测试，只应测试目标代码，既不应依赖另一个系统、模块的输入，也不应输出到另一个系统、模块，这是“不依赖外部环境”的双重含义。（从这个意义上说，测试的过程应践行函数式编程的理念：pure、immutable、no side effect。）&lt;/p&gt;
+
+&lt;p&gt;就go语言而言，唯一的抽象工具就是&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;了。当依赖&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;时，可以在测试时用内存实现的db替换外部的mysql；用mock的rpc客户端替换真实的rpc调用。&lt;/p&gt;
+
+&lt;h3 id=&quot;尽量避免全局变量&quot;&gt;尽量避免全局变量&lt;/h3&gt;
+
+&lt;p&gt;一时全局一时爽，一直全局会很惨！&lt;/p&gt;
+
+&lt;p&gt;散落在各处的全局变量引用，让人无法快速分析出外部依赖。本质上全局变量是固定的实现，绑定全局变量同样使得剥离依赖变量困难。&lt;/p&gt;
+
+&lt;p&gt;建议：总是在&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;struct&lt;/code&gt;定义里声明清楚外部依赖，哪怕只是一个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;config&lt;/code&gt;：&lt;/p&gt;
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TaskPackServiceImpl&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;MaterialService&lt;/span&gt;         &lt;span class=&quot;n&quot;&gt;MaterialService&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;TaskService&lt;/span&gt;             &lt;span class=&quot;n&quot;&gt;TaskService&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;UserService&lt;/span&gt;             &lt;span class=&quot;n&quot;&gt;UserService&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;MatrixClientImpl&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;Config&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;config&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MatrixConfig&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;有个例外情况。构造器初始化传参的方式过于简单，复杂项目下，在我们没有依赖注入工具的情况下，会让单例生成变得很繁琐。如&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;TaskPackService&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;TaskService&lt;/code&gt;互相依赖，无法直接构造出来。如果严格执行上述建议，相当于人工实现依赖注入。所有单例都先使用无参数构造器&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;new&lt;/code&gt;出来，然后再遍历依赖图，一个个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;set&lt;/code&gt;属性。&lt;/p&gt;
+
+&lt;p&gt;在引入依赖注入工具之前，这种耦合严重的场景可以直接引用全局变量，其余场景（占多数，毕竟是微服务）仍坚持该建议。&lt;/p&gt;
+
+&lt;h2 id=&quot;方法与实操&quot;&gt;方法与实操&lt;/h2&gt;
+
+&lt;p&gt;权衡投入产出，推荐对服务的serivce层做测试。服务的handler层和api暂不推荐。以service的公有方法为单位编写若干测试用例。&lt;/p&gt;
+
+&lt;p&gt;推荐两种实践：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;对复杂的service方法做单元测试，即把该方法的外部依赖全部mock掉，包括其它service，和自己dal层。&lt;/li&gt;
+  &lt;li&gt;复杂度一般的service方法，直接做集成测试，即不mock其它的其它service，不mock自己的dal层。但mock掉外部依赖：rpc、中间件的调用，等。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;总得来说：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Mock&lt;/code&gt;，只是结合具体场景的手段不尽相同。&lt;/p&gt;
+
+&lt;h4 id=&quot;场景1数据库调用&quot;&gt;场景1，数据库调用&lt;/h4&gt;
+
+&lt;p&gt;有两种路线：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;1，直接把dal层mock掉&lt;/li&gt;
+  &lt;li&gt;2，dal层真实，但db被mock&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;建议走路线2，因为我们的业务往往&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sql&lt;/code&gt;的正确性是非常关键的，有些功能甚至就是些&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;crud&lt;/code&gt;，路线1把dal层都mock掉了，发现问题的可能性大大降低了。&lt;/p&gt;
+
+&lt;p&gt;用内存数据库替代真实数据库（这也是一种mock）。&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;dao依赖抽象的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DBManager&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;提供&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DBManager&lt;/code&gt;的两个实现&lt;/li&gt;
+  &lt;li&gt;在init内提供选择（只在这里有区别，其余代码完全一样）&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;// 抽象的db协议&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DBManager&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;interface&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;WithDB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;GetDB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gorm&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DB&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;TransactionWithResult&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fc&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;interface&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{},&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;interface&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{},&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;err&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;Transaction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fc&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;err&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;// 测试用的db实现&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DBManagerFake&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;// 生产用的db实现&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DBManagerReal&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;// dal包的Init方法提供两种Init:&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Init&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;initRealDB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;// 外部mysql&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;EMDBManager&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DBManagerReal&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;  
+	&lt;span class=&quot;n&quot;&gt;initDAOs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;InitTest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;initFakeDB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;  &lt;span class=&quot;c&quot;&gt;// 内存sqlite&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;EMDBManager&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DBManagerFake&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{}&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;initDAOs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;// XXX_test.go文件里使用InitTest：&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TestAuditPassAction_Transfer_DoublePass&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;testing&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;dal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InitTest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;repository&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Init&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;Init&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+	&lt;span class=&quot;c&quot;&gt;// ...&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;	
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;场景2外部调用&quot;&gt;场景2，外部调用&lt;/h4&gt;
+&lt;p&gt;数据库场景里代码在我们掌握范围内，像redis、rpc之类的（统称外部调用）客户端代码都是提供好的，像我司的kitool生成的客户端代码就是一个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;type Client struct&lt;/code&gt;，并没有提供&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;，怎么办？&lt;/p&gt;
+
+&lt;p&gt;我们自己写个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;，再引用预生成的代码实现该&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;。实际使用时，不直接用预生成的代码，而是通过依赖该&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;以&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;crowd&lt;/code&gt;项目和题库的交互为例，我们自己定义&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;表达题库提供的能力协议：&lt;/p&gt;
+
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;MatrixClient&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;interface&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;AddUpdateBook&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddUpdateBookRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MatrixResponse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;UpdateBookState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;UpdateBookStateRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MatrixResponse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;AddUpdateItem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;requests&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddUpdateItemRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MatrixResponse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;UpdateItemState&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;itemIds&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;state&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MatrixResponse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;然后有两份实现&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;真实的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MatrixClientImpl&lt;/code&gt;，生产使用&lt;/li&gt;
+  &lt;li&gt;假的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MockMatrixClient&lt;/code&gt;，测试时使用。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;类似地，其它形式的外部依赖，也可以这么解决。付出的额外成本是：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;一个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;定义&lt;/li&gt;
+  &lt;li&gt;一个调用真实接口的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;implementation&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;这个成本是非常小的，因为&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;的定义就是原方法签名的拷贝，而&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;implementation&lt;/code&gt;只是简单地返回真实调用。&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MockMatrixClient&lt;/code&gt;怎么搞后面再介绍。&lt;/p&gt;
+
+&lt;p&gt;值得讨论的问题是，换位思考下，作为服务提供方时，我们是否应该提供&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface+implementation&lt;/code&gt;，而不是只提供&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;implementation&lt;/code&gt;？&lt;/p&gt;
+
+&lt;p&gt;乍一看，前者更好。但更推荐后者，因为一个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;往往有多个方法，但多数场景下，并不会用到全部方法。一个大而全的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;反而让使用方背负过多负担。使用方根据需求定义自己的小&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;，成本更低。&lt;/p&gt;
+
+&lt;h3 id=&quot;用例的编写&quot;&gt;用例的编写&lt;/h3&gt;
+
+&lt;h4 id=&quot;收集用例&quot;&gt;收集用例&lt;/h4&gt;
+
+&lt;p&gt;产品 &amp;lt; 研发 &amp;lt; QA：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;产品给规则(和典型case)&lt;/li&gt;
+  &lt;li&gt;研发单测覆盖主干case&lt;/li&gt;
+  &lt;li&gt;QA覆盖各种情形的case&lt;/li&gt;
+  &lt;li&gt;bug反馈&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;建议：当修复qa反馈的bug后，应该考虑落地成代码内的测试用例，方便后续回归。（当因某个路段护栏坏了掉进沟里，把车吊上起之后，还想把护栏补一补，对吧？）&lt;/p&gt;
+
+&lt;h4 id=&quot;保持独立&quot;&gt;保持独立&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;一个测试方法对应一个case&lt;/li&gt;
+  &lt;li&gt;用例之间不共享数据、状态&lt;/li&gt;
+  &lt;li&gt;线程安全，可并发跑测试&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;测试代码与业务代码分离&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;文件独立，测试代码写在XXX_test.go里&lt;/li&gt;
+  &lt;li&gt;包独立, 业务为&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;package service&lt;/code&gt;，对应测试应为&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;package service_test&lt;/code&gt;。
+    &lt;ul&gt;
+      &lt;li&gt;独立包的好处是编译后成的生产用的可执行文件内不会包括&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt;相关代码。&lt;/li&gt;
+      &lt;li&gt;减少包互相依赖的可能性。&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;单测覆盖率&quot;&gt;单测覆盖率&lt;/h3&gt;
+&lt;p&gt;命令：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;cd app/service&lt;/li&gt;
+  &lt;li&gt;go test -coverprofile=c.out&lt;/li&gt;
+  &lt;li&gt;go tool cover -html=c.out&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;注意，覆盖率是statements，不是branches。&lt;/p&gt;
+
+&lt;p&gt;多少合适？&lt;/p&gt;
+
+&lt;p&gt;覆盖率不是追求的目标，作为研发，&lt;strong&gt;覆盖主干case&lt;/strong&gt;是目标。但这个目标不易量化和评价。因此暂且用覆盖率代替，个人想法：60%及格，80%良好。&lt;a href=&quot;https://github.com/avelino/awesome-go&quot;&gt;awesome-go&lt;/a&gt;要求项目测试覆盖率达到80% 以上才有资格入选。Go社区两个常用库的覆盖率情况：&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;gin:  98%&lt;/li&gt;
+  &lt;li&gt;gorm: 78%&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;mock生成工具&quot;&gt;mock生成工具&lt;/h3&gt;
+
+&lt;p&gt;利用&lt;a href=&quot;https://github.com/golang/mock&quot;&gt;mockgen&lt;/a&gt;，只要有&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;，就能自动生成&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;implementation&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;例如：&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;mockgen &lt;span class=&quot;nt&quot;&gt;-source&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;search.go &lt;span class=&quot;nt&quot;&gt;-package&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;thirdcall &lt;span class=&quot;nt&quot;&gt;-destination&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;search_mock.go
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;对&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;search.go&lt;/code&gt;内的&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;进行mock，生成实现&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;search_mock.go&lt;/code&gt;，其package为&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;thirdcall&lt;/code&gt;。&lt;/p&gt;
+
+&lt;p&gt;注意，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;search_mock.go&lt;/code&gt;为自动生成的代码，任何时候都不应人工修改它。当源&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;interface&lt;/code&gt;有变化时，应重新执行上述命令。&lt;/p&gt;
+
+&lt;p&gt;mock生成的代码虽然是固定的，其行为表现却是高度可制定的。可以在测试代码里直接指定被Mock对象的行为，如：&lt;/p&gt;
+
+&lt;div class=&quot;language-go highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;// 执行SearchItem时传ctx和任意参数，都返回指定的resp和nil：&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;algoService&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;EXPECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;SearchItem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gomock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Any&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;Return&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;resp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;// 执行SearchItem时传ctx和任意参数，sleep两分钟，然后返回nil, nil。模拟服务超时。&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;algoService&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;thirdcall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NewMockAlgorithmService&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctrl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;algoService&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;EXPECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;SearchItem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gomock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Any&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;DoAndReturn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ctx&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;searchpage0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;SearchItemRequest&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;searchpage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;KitcSearchItemResponse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Minute&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;nil&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;nil&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;})&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;AnyTimes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;测试的成本&quot;&gt;测试的成本&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;项目初期，更长的开发时间&lt;/li&gt;
+  &lt;li&gt;更高的技能要求，对语言、对设计&lt;/li&gt;
+  &lt;li&gt;更煎熬的心理：
+    &lt;ul&gt;
+      &lt;li&gt;长短期思维的博弈&lt;/li&gt;
+      &lt;li&gt;个人vs团队,前人vs后人&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Sun, 26 Apr 2020 12:15:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2020/04/26/go-unit-test.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2020/04/26/go-unit-test.html</guid>
+        
+        
+        <category>computer</category>
+        
+      </item>
     
       <item>
         <title>协程在手，并发不愁</title>
@@ -58,30 +876,30 @@
 
 &lt;ul&gt;
   &lt;li&gt;有栈协程(Stackful)：有自己的调用栈&lt;/li&gt;
-  &lt;li&gt;如&lt;code class=&quot;highlighter-rouge&quot;&gt;Golang&lt;/code&gt;，栈内存可以根据需要进行扩容和缩容，最小一般为内存页长 4KB。&lt;/li&gt;
+  &lt;li&gt;如&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Golang&lt;/code&gt;，栈内存可以根据需要进行扩容和缩容，最小一般为内存页长 4KB。&lt;/li&gt;
   &lt;li&gt;无栈协程(Stackless)：没有自己的调用栈&lt;/li&gt;
-  &lt;li&gt;如&lt;code class=&quot;highlighter-rouge&quot;&gt;Python&lt;/code&gt;、&lt;code class=&quot;highlighter-rouge&quot;&gt;Kotlin&lt;/code&gt;。上下文通过CPS(continuation-passing-style)保存，在&lt;code class=&quot;highlighter-rouge&quot;&gt;Kotlin&lt;/code&gt;中，就是一个&lt;a href=&quot;https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines.experimental/-continuation/index.html&quot;&gt;Continuation&lt;/a&gt;类，可想像成&lt;code class=&quot;highlighter-rouge&quot;&gt;Callback&lt;/code&gt;。&lt;/li&gt;
+  &lt;li&gt;如&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Python&lt;/code&gt;、&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Kotlin&lt;/code&gt;。上下文通过CPS(continuation-passing-style)保存，在&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Kotlin&lt;/code&gt;中，就是一个&lt;a href=&quot;https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines.experimental/-continuation/index.html&quot;&gt;Continuation&lt;/a&gt;类，可想像成&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Callback&lt;/code&gt;。&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;bonus: &lt;code class=&quot;highlighter-rouge&quot;&gt;CPS&lt;/code&gt; vs &lt;code class=&quot;highlighter-rouge&quot;&gt;Direct Style&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;bonus: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CPS&lt;/code&gt; vs &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Direct Style&lt;/code&gt;&lt;/p&gt;
 
 &lt;hr /&gt;
 
 &lt;h1 id=&quot;协程的使用&quot;&gt;协程的使用&lt;/h1&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;python&lt;/code&gt; 版&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python&lt;/code&gt; 版&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;consumer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;bone&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt;  &lt;span class=&quot;c&quot;&gt;# 接收producer的传参，执行后面代码，直到再次碰到yield后返回producer&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[31;1m[consumer] &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[0m 消费 &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bone&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;bone&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;yield&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;# 接收producer的传参，执行后面代码，直到再次碰到yield后返回producer
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[31;1m[consumer] %s&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[0m 消费 %s &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bone&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
 
 &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;producer&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;# 发None启动消费者&lt;/span&gt;
-    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
-        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[32;1m[producer]&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[0m 生产 &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;%&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;s&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;    &lt;span class=&quot;c&quot;&gt;# 暂停producer，并切换到consumer&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;bp&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;   &lt;span class=&quot;c1&quot;&gt;# 发None启动消费者
+&lt;/span&gt;    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[32;1m[producer]&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\033&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;[0m 生产 %s&quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;obj1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;or&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;obj2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;# 暂停producer，并切换到consumer
+&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;time&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;bonus: 对比子程序&lt;/p&gt;
@@ -90,7 +908,7 @@
 
 &lt;h1 id=&quot;协程的使用-1&quot;&gt;协程的使用&lt;/h1&gt;
 
-&lt;p&gt;单步调试，注意&lt;code class=&quot;highlighter-rouge&quot;&gt;send&lt;/code&gt;(1)之后跳到了&lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt;(2)：&lt;/p&gt;
+&lt;p&gt;单步调试，注意&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;send&lt;/code&gt;(1)之后跳到了&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;yield&lt;/code&gt;(2)：&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/img/201909/coroutine_trace.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
@@ -98,25 +916,25 @@
 
 &lt;h1 id=&quot;协程的使用-2&quot;&gt;协程的使用&lt;/h1&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;kotlin&lt;/code&gt;版：&lt;a href=&quot;https://pl.kotl.in/7s9CC8kSa&quot;&gt;playgroud&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;kotlin&lt;/code&gt;版：&lt;a href=&quot;https://pl.kotl.in/7s9CC8kSa&quot;&gt;playgroud&lt;/a&gt;&lt;/p&gt;
 
-&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;py&quot;&gt;channel&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;gt;()&lt;/span&gt;
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;py&quot;&gt;channel&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;&amp;gt;()&lt;/span&gt;
 
-&lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;[producer] 生产 $x&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nc&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;[producer] 生产 $x&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;channel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 
-&lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;nc&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;[consumer] 消费 ${channel.receive()}&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;[consumer] 消费 ${channel.receive()}&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;bonus: 为何&lt;code class=&quot;highlighter-rouge&quot;&gt;python&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;kotlin&lt;/code&gt;版输出不同？&lt;/p&gt;
+&lt;p&gt;bonus: 为何&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;python&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;kotlin&lt;/code&gt;版输出不同？&lt;/p&gt;
 
 &lt;hr /&gt;
 
@@ -167,27 +985,27 @@
 
 &lt;p&gt;线程/进程是os通过调度算法，保存当前的上下文实现暂停，重新开始的地方不可预期。每次CPU计算的指令数量和代码跑过的CPU时间有关，跑到os分配的cpu时间到达后就会被os强制挂起。&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Coroutine&lt;/code&gt;是编译器的魔术，通过插入相关的代码使得代码段能够实现分段式的执行，重新开始的地方是&lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt;关键字指定的，一次一定会运行到&lt;code class=&quot;highlighter-rouge&quot;&gt;yield&lt;/code&gt;语句，所以本质是程序员决定何时挂起。&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Coroutine&lt;/code&gt;是编译器的魔术，通过插入相关的代码使得代码段能够实现分段式的执行，重新开始的地方是&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;yield&lt;/code&gt;关键字指定的，一次一定会运行到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;yield&lt;/code&gt;语句，所以本质是程序员决定何时挂起。&lt;/p&gt;
 
 &lt;hr /&gt;
 &lt;h1 id=&quot;协程的优点&quot;&gt;协程的优点&lt;/h1&gt;
 
-&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;c1&quot;&gt;// 可以轻松执行以下代码：
-&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;300000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${Thread.currentThread().name} is busy calculating&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;  &lt;span class=&quot;c1&quot;&gt;// 可以轻松执行以下代码：&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1000_000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;300000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${Thread.currentThread().name} is busy calculating&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
       &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
     &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 
-  &lt;span class=&quot;c1&quot;&gt;// 视机器配置，可能无法运行下面代码：
-&lt;/span&gt;  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;Thread&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;300000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${Thread.currentThread().name} is busy calculating&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// 视机器配置，可能无法运行下面代码：&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1000_000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;Thread&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;..&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;300000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;${Thread.currentThread().name} is busy calculating&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
       &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;}.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
   &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
@@ -249,17 +1067,17 @@
 
 &lt;h1 id=&quot;kotlin协程&quot;&gt;Kotlin协程&lt;/h1&gt;
 
-&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;fun&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;CoroutineScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineContext&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;EmptyCoroutineContext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineStart&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineStart&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;block&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;suspend&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CoroutineScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Unit&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Job&lt;/span&gt;
+&lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;fun&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CoroutineScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;launch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CoroutineContext&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;EmptyCoroutineContext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CoroutineStart&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CoroutineStart&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;block&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;suspend&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CoroutineScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Unit&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Job&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;CoroutineContext&lt;/code&gt;: 可以理解为协程的上下文，其中一个实现&lt;code class=&quot;highlighter-rouge&quot;&gt;CoroutineDispatcher&lt;/code&gt;支持4种线程模式：&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CoroutineContext&lt;/code&gt;: 可以理解为协程的上下文，其中一个实现&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CoroutineDispatcher&lt;/code&gt;支持4种线程模式：&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;Dispatchers.Default, 默认线程池, &lt;code class=&quot;highlighter-rouge&quot;&gt;CPU-heavy&lt;/code&gt;任务&lt;/li&gt;
-  &lt;li&gt;&lt;a href=&quot;https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html&quot;&gt;Dispatchers.IO&lt;/a&gt;, 适合&lt;code class=&quot;highlighter-rouge&quot;&gt;IO-heavy&lt;/code&gt;任务&lt;/li&gt;
+  &lt;li&gt;Dispatchers.Default, 默认线程池, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;CPU-heavy&lt;/code&gt;任务&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-dispatchers/-i-o.html&quot;&gt;Dispatchers.IO&lt;/a&gt;, 适合&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IO-heavy&lt;/code&gt;任务&lt;/li&gt;
   &lt;li&gt;Dispatchers.Main, 主线程&lt;/li&gt;
   &lt;li&gt;Dispatchers.Unconfined, 没指定，就是在当前线程&lt;/li&gt;
 &lt;/ul&gt;
@@ -267,13 +1085,13 @@
 &lt;div class=&quot;language-kotlin highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;kotlinx.coroutines.*&lt;/span&gt;
 
 &lt;span class=&quot;k&quot;&gt;fun&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// launch a new coroutine in background and continue
-&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;delay&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1000L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// non-blocking delay for 1 second (default time unit is ms)
-&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;World!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// print after delay
-&lt;/span&gt;    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Hello,&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// main thread continues while coroutine is delayed
-&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Thread&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2000L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// block main thread for 2 seconds to keep JVM alive
-&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;GlobalScope&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;launch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// launch a new coroutine in background and continue&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;delay&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1000L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// non-blocking delay for 1 second (default time unit is ms)&lt;/span&gt;
+        &lt;span class=&quot;nf&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;World!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// print after delay&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Hello,&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// main thread continues while coroutine is delayed&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;Thread&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2000L&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// block main thread for 2 seconds to keep JVM alive&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;hr /&gt;
 
@@ -300,7 +1118,7 @@
       </item>
     
       <item>
-        <title>Queuing Theory——排队的艺术</title>
+        <title>Queuing theory——排队的艺术</title>
         <description>&lt;p&gt;近期团队遇到相关场景，把2016年在堆糖做过的分享搬出来做了点完善，再分享一次：&lt;a href=&quot;/pdf/queuing-theory.pdf&quot;&gt;排队的艺术&lt;/a&gt;&lt;/p&gt;
 </description>
         <pubDate>Tue, 29 Jan 2019 14:30:09 +0800</pubDate>
@@ -313,7 +1131,7 @@
       </item>
     
       <item>
-        <title>像代数推导一样编程</title>
+        <title>像代数推导一般</title>
         <description>&lt;blockquote&gt;
   &lt;p&gt;In math we trust——张首晟&lt;/p&gt;
 &lt;/blockquote&gt;
@@ -322,7 +1140,7 @@
 
 &lt;p&gt;学习函数式编程，与其说是学习某门具体的语言，不如说是学习如何运用代数结构描述现实事物，运用代数式子表达现实逻辑，运用代数推导求解现实问题。&lt;/p&gt;
 
-&lt;h3 id=&quot;面向表达式语言&quot;&gt;面向表达式语言&lt;/h3&gt;
+&lt;h5 id=&quot;面向表达式语言&quot;&gt;面向表达式语言&lt;/h5&gt;
 &lt;p&gt;代数，简而言之，研究的是：&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;对象的&lt;strong&gt;集合&lt;/strong&gt;，这里的对象不是编程语言里的对象，反倒是更像类型。&lt;/li&gt;
@@ -331,10 +1149,10 @@
 
 &lt;p&gt;如，数构成集合，加减乘除构成操作。&lt;/p&gt;
 
-&lt;p&gt;介绍纯函数时，我们知道了数学上的运算可以写成纯函数，如&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x) = 2 * x + 3&lt;/code&gt;可以写成&lt;code class=&quot;highlighter-rouge&quot;&gt;def f(x: Int) = x * x + 3&lt;/code&gt;，&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x, y) = x + y&lt;/code&gt;写成&lt;code class=&quot;highlighter-rouge&quot;&gt;def f(x: Int, y: Int) = x + y&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;介绍纯函数时，我们知道了数学上的运算可以写成纯函数，如&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(x) = 2 * x + 3&lt;/code&gt;可以写成&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;def f(x: Int) = x * x + 3&lt;/code&gt;，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(x, y) = x + y&lt;/code&gt;写成&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;def f(x: Int, y: Int) = x + y&lt;/code&gt;。&lt;/p&gt;
 
 &lt;p&gt;集合里的对象，也就是语言的类型，后面再辟专门的章节讲述。先看看看代数的推导过程，蕴含了哪些值得借鉴的做法。以下是一道简单代数题的求解过程：&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;已知函数f(x + 2) = 2x^2 - 5x + 1，求f(x)。
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;已知函数f(x + 2) = 2x^2 - 5x + 1，求f(x)。
 解：
 设 t = x + 2, 则x = t - 2
 ∴ f(t) = 2 * (t - 2)^2 - 5 * (t - 2) + 1
@@ -345,42 +1163,42 @@
 
 &lt;p&gt;可以发现：&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;首先，在整个推导过程中，保持变量含义的不变，从头到尾的一致性。不会突然令&lt;code class=&quot;highlighter-rouge&quot;&gt;x = 9&lt;/code&gt;或别的值，当需要表达其它量时，启用新的变量t，并表述清楚t的来源&lt;code class=&quot;highlighter-rouge&quot;&gt;t = x + 2&lt;/code&gt;，而不是复用原来的变量：&lt;code class=&quot;highlighter-rouge&quot;&gt;x = x + 2&lt;/code&gt;。&lt;/li&gt;
+  &lt;li&gt;首先，在整个推导过程中，保持变量含义的不变，从头到尾的一致性。不会突然令&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;x = 9&lt;/code&gt;或别的值，当需要表达其它量时，启用新的变量t，并表述清楚t的来源&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;t = x + 2&lt;/code&gt;，而不是复用原来的变量：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;x = x + 2&lt;/code&gt;。&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;有人把变量的&lt;strong&gt;不可变性&lt;/strong&gt;视为函数式编程最重要的特性，因为，就像上述推导一样，它喻示着过程的可省视性。仅仅通过阅读代码，就可以理解整个逻辑，而不是指令式编程那样，必须在脑子里”运行”代码。当大脑无法跟踪太多变量的变化时，不得不借用纸笔或调试工具来debug，只消几层的if判断就足以把人绕晕。有了不可变性，可以放心地将代码的各个部分分离开，独立解读，脑子里要保留、跟踪的信息几乎不随代码规模的增长而增加。&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;其次，在值相同的情况下，符号和表达式可以互相替代，如&lt;code class=&quot;highlighter-rouge&quot;&gt;t&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;x + 2&lt;/code&gt;在通篇任意位置可以互相替代，这种替代在数学上叫&lt;strong&gt;换元&lt;/strong&gt;，用于辅助推导，并不改变语义。&lt;/li&gt;
+  &lt;li&gt;其次，在值相同的情况下，符号和表达式可以互相替代，如&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;t&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;x + 2&lt;/code&gt;在通篇任意位置可以互相替代，这种替代在数学上叫&lt;strong&gt;换元&lt;/strong&gt;，用于辅助推导，并不改变语义。&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;若要在代码层面“换元”，则要求满足引用透明，引用透明辅助编译器对代码做优化，如果没有引用透明，编译器无法自由地替换“表达式“和“值”，因为前后两次的执行结果可能不同，哪怕结果完全一样，程序只能无奈地一次次对该表达式做求值操作。也不能改变表达式的顺序，因为前后两次的求值结果可能不一样，进而限制了程序的并发性。&lt;/p&gt;
 
 &lt;p&gt;代数也是一门语言，它用数学模型描述现实世界，并解决逻辑问题。如果把它也看成一门编程语言，它应该归入什么类别呢？大概“面向表达式语言”是比较合理的分类。没错，表达式！看上面代数题的求解过程，本质是表达式的归约操作、合并同类项操作。所谓归约，就是将每个最内层可归约表达式用其值来替换，这样又形成了新的最内层可归约表达式，然后再对其进行归约，最后，整个程序全部被归约，仅留下最终结果。&lt;/p&gt;
 
-&lt;p&gt;所以，用它解决问题的过程应该是，用数字或符号描述现实世界，如直角三角形的两和直角边长度分别为a和b，依据放之四海而皆准的公理，如勾股定理，构建它们的逻辑关系，如斜边&lt;code class=&quot;highlighter-rouge&quot;&gt;c^2 = a^2 + b^2&lt;/code&gt;
+&lt;p&gt;所以，用它解决问题的过程应该是，用数字或符号描述现实世界，如直角三角形的两和直角边长度分别为a和b，依据放之四海而皆准的公理，如勾股定理，构建它们的逻辑关系，如斜边&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;c^2 = a^2 + b^2&lt;/code&gt;
 ，再用加减乘除等运算操作，简化、规约表达式，求得斜边长度。这一过程中，我们并没有过问这些变量寄存在哪里（有人直接在脑子里算，也有人要在纸上演算），也不关心它们是否复用了同一块内存，会不会被其它人错误地读写了。我们关心的是想要什么，得到结果的逻辑是什么，而不是如何赋值、如何改写变量。前者是人类擅长的，后者是机器擅长的。我们应让机器服务人类，而不是反过来，人类迁就机器。为此，我们需要一个工具，把高阶的人类思维忠实地转换为低阶的机器语言。&lt;/p&gt;
 
-&lt;p&gt;函数式语言就是这样的工具，它有一个少为人知的别名，正是“面向表达式语言”。&lt;strong&gt;表达式&lt;/strong&gt;是值和逻辑（函数）的组合，讲究如何编织逻辑以创建新的值，执行的过程即是规约化得到最终结果的过程，如：&lt;code class=&quot;highlighter-rouge&quot;&gt;val total = sum(list)&lt;/code&gt;，sum是一个求和的运算逻辑，通过这个逻辑得到值&lt;code class=&quot;highlighter-rouge&quot;&gt;sum&lt;/code&gt;。 与之相反的是&lt;strong&gt;指令式&lt;/strong&gt;，用一系列的执行单元，告诉计算机如何改变指令计数器、数据存储器、当前计数状态等，通过状态的改变得到最终结果，如：&lt;code class=&quot;highlighter-rouge&quot;&gt;list.sum()&lt;/code&gt;，sum是个运算指令，它不返回计算的值，而是改变了某个状态，通过读取这个状态的地址得到结果。&lt;/p&gt;
+&lt;p&gt;函数式语言就是这样的工具，它有一个少为人知的别名，正是“面向表达式语言”。&lt;strong&gt;表达式&lt;/strong&gt;是值和逻辑（函数）的组合，讲究如何编织逻辑以创建新的值，执行的过程即是规约化得到最终结果的过程，如：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;val total = sum(list)&lt;/code&gt;，sum是一个求和的运算逻辑，通过这个逻辑得到值&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sum&lt;/code&gt;。 与之相反的是&lt;strong&gt;指令式&lt;/strong&gt;，用一系列的执行单元，告诉计算机如何改变指令计数器、数据存储器、当前计数状态等，通过状态的改变得到最终结果，如：&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;list.sum()&lt;/code&gt;，sum是个运算指令，它不返回计算的值，而是改变了某个状态，通过读取这个状态的地址得到结果。&lt;/p&gt;
 
 &lt;p&gt;指令式语言让我们从低级语言的内存、栈、寄存器等概念中解脱，却依然是指令运行过程的封装：循环、锁、线程、并发。函数式语言则进一步抽象，更多地让编译器、解析器处理这些概念，让人腾出更多精力关注数据模型、关注业务逻辑。&lt;/p&gt;
 
-&lt;h3 id=&quot;函数的组合&quot;&gt;函数的组合&lt;/h3&gt;
+&lt;h5 id=&quot;函数的组合&quot;&gt;函数的组合&lt;/h5&gt;
 &lt;p&gt;他山之石，可以攻玉。我们回头再挖掘下代数里可以借鉴的特质。&lt;/p&gt;
-&lt;div class=&quot;language-markdown highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;如果f(x) = 3x - 1，且g(x) = x^3 + 2，那么f(g(3))的值是多少？
+&lt;div class=&quot;language-markdown highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;如果f(x)=3x-1，且g(x)=x^3+2，那么f(g(3))的值是多少？
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;间接的做法是，先求得&lt;code class=&quot;highlighter-rouge&quot;&gt;g(3) = 29&lt;/code&gt;，进而&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(3)) = f(29) = 86&lt;/code&gt;。那么，有没有直接的做法呢？&lt;/p&gt;
+&lt;p&gt;间接的做法是，先求得&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g(3) = 29&lt;/code&gt;，进而&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(g(3)) = f(29) = 86&lt;/code&gt;。那么，有没有直接的做法呢？&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;/img/201810/compose_func.png&quot; alt=&quot;compose&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;/img/compose_func.png&quot; alt=&quot;compose&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;为了直接计算&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(x))&lt;/code&gt;，我们得&lt;strong&gt;组合&lt;/strong&gt;（Composition）f和g这两个函数。由于&lt;code class=&quot;highlighter-rouge&quot;&gt;g(x)&lt;/code&gt;是&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x)&lt;/code&gt;的输入，可以把&lt;code class=&quot;highlighter-rouge&quot;&gt;f(x)&lt;/code&gt;的各个&lt;code class=&quot;highlighter-rouge&quot;&gt;x&lt;/code&gt;替换为&lt;code class=&quot;highlighter-rouge&quot;&gt;g(x)&lt;/code&gt;，得到&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(x)) = 3g(x)-1 = 3x^3+5&lt;/code&gt;，即是图中绿线所表示的函数。&lt;/p&gt;
+&lt;p&gt;为了直接计算&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(g(x))&lt;/code&gt;，我们得&lt;strong&gt;组合&lt;/strong&gt;（Composition）f和g这两个函数。由于&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g(x)&lt;/code&gt;是&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(x)&lt;/code&gt;的输入，可以把&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(x)&lt;/code&gt;的各个&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;x&lt;/code&gt;替换为&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;g(x)&lt;/code&gt;，得到&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(g(x)) = 3g(x)-1 = 3x^3+5&lt;/code&gt;，即是图中绿线所表示的函数。&lt;/p&gt;
 
-&lt;p&gt;在Scala里，&lt;code class=&quot;highlighter-rouge&quot;&gt;Function1&lt;/code&gt;接口定义了&lt;code class=&quot;highlighter-rouge&quot;&gt;compose&lt;/code&gt;方法和&lt;code class=&quot;highlighter-rouge&quot;&gt;andThen&lt;/code&gt;方法，均可以用来组合单参数函数。&lt;code class=&quot;highlighter-rouge&quot;&gt;f(g(x))&lt;/code&gt;可以写成：&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;f: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;g: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
+&lt;p&gt;在Scala里，&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Function1&lt;/code&gt;接口定义了&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;compose&lt;/code&gt;方法和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;andThen&lt;/code&gt;方法，均可以用来组合单参数函数。&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;f(g(x))&lt;/code&gt;可以写成：&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;f: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;g: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;
 
-&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fg&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compose&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fg2&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;andThen&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;fg&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compose&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;fg2&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;andThen&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;注意，”_“表示Eta expansion。&lt;/p&gt;
 
@@ -389,12 +1207,8 @@
 &lt;p&gt;我们是如何解决问题的？每当碰到复杂的问题，就把它分解为更小的问题，直到问题足够小，小到我们可以写代码解决它。然后，再组合这些小颗粒度的代码，形成原始问题的解决方案。问题规模的限制并不是计算机强加给我们的，而是人类大脑的限制。1956年发表的著名论文《神奇的数字 7，加减 2：人类信息加工容量的某些局限》指出，不管记忆的内容怎么变化，是数字，字母，数字 + 字母，还是从 1000 个单音节单词中随机选，人们在记忆这些材料的时候，大概只能记住 5-9 个。所以，我们必须把一次性可以处理的代码块规模控制在大脑可以接受的程度。所谓”优雅代码”，不是结构清晰、简洁所能概括的，更切中要害的说法是，可被有限的大脑带宽处理。&lt;/p&gt;
 
 &lt;p&gt;分解本身不是目的，解决问题需要重组这些子块，如果无法重新组合，分解的意义就不存在。什么样的函数能组合呢？显然，一个函数的输出类型必须和另一个函数的输入类型保持一致。至少在函数式语言内，这是”类型”概念存在的根本原因。有关类型，我们后面再详谈。&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;&lt;em&gt;本文节选自&lt;a href=&quot;https://github.com/vitrun/scalazen&quot;&gt;《函数式思维学习录》&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
 </description>
-        <pubDate>Mon, 29 Oct 2018 14:30:09 +0800</pubDate>
+        <pubDate>Mon, 29 Oct 2018 12:15:09 +0800</pubDate>
         <link>http://localhost:4000/computer/2018/10/29/fp-algebra.html</link>
         <guid isPermaLink="true">http://localhost:4000/computer/2018/10/29/fp-algebra.html</guid>
         
@@ -411,49 +1225,49 @@
 
 &lt;p&gt;纯函数的两个优良品质，为它赢得了很多优势。&lt;/p&gt;
 
-&lt;h4 id=&quot;引用透明&quot;&gt;引用透明&lt;/h4&gt;
+&lt;h5 id=&quot;引用透明&quot;&gt;引用透明&lt;/h5&gt;
 &lt;p&gt;以直接用函数运行的结果替代函数表达式本身而不改变程序的最终结果，称为引用透明（Referential Transparent）。如：&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;world&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;length&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;world&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;length&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;hello&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;length&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;如果把第二处”hello”.length换成x，或者反过来，把第二处y换成”world”
 .length，并不改变z的值。这似乎是很显然的事，却是以length是纯函数为前提的，换成随机数生成函数、获取当前时间的函数，就不能替换。如果改变函数范围外的变量，也会破坏引用透明，如：&lt;/p&gt;
 &lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt;
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;//false
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;t1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;c1&quot;&gt;//false&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h4 id=&quot;记忆&quot;&gt;记忆&lt;/h4&gt;
+&lt;h5 id=&quot;记忆&quot;&gt;记忆&lt;/h5&gt;
 &lt;p&gt;引用透明很好，可避免函数的反复执行，但毕竟还是需要人工替换，如果函数自身能智能地实现一次计算，多处使用就好了。可喜的是，对于纯函数，编译器可以实施名为”记忆”（Memoization)的优化技术，正是达到这个效果。特别是执行很费时的函数，把结果缓存起来，当下次用相同入参调用时，便可直接返回缓存的结果，不再重新计算，大大提高程序的效率。当然，通过把入参和结果作为键值对保存在Map中，我们可以自己实现缓存过程，方便控制缓存策略。用通常不太缺乏的内存空间换取宝贵的计算时间，这是计算机科学里常用的”伎俩”。&lt;/p&gt;
 
-&lt;h4 id=&quot;缓求值&quot;&gt;缓求值&lt;/h4&gt;
-&lt;p&gt;缓求值(Lazy Evaluation)，指尽可能地推迟求解表达式，是函数式编程语言常见的一种特性。Scala通过lazy关键字声明缓求值。缓求不会在遇到表达式时就触发运行，而是在用到的时候才真实计算。缓求在记忆之外，为昂贵的运算提供了另一种优化手段。如，以下判断质数的函数，虽然表达式&lt;code class=&quot;highlighter-rouge&quot;&gt;isPrimeSlow(num)&lt;/code&gt;在if判断前面，但只有当输入为奇数时，才会真正被执行。&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isPrimeSlow&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;until&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;forall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;h5 id=&quot;缓求值&quot;&gt;缓求值&lt;/h5&gt;
+&lt;p&gt;缓求值(Lazy Evaluation)，指尽可能地推迟求解表达式，是函数式编程语言常见的一种特性。Scala通过lazy关键字声明缓求值。缓求不会在遇到表达式时就触发运行，而是在用到的时候才真实计算。缓求在记忆之外，为昂贵的运算提供了另一种优化手段。如，以下判断质数的函数，虽然表达式&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;isPrimeSlow(num)&lt;/code&gt;在if判断前面，但只有当输入为奇数时，才会真正被执行。&lt;/p&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;isPrimeSlow&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;until&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;forall&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
 
-&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isPrime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;lazy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;isPrimeSlow&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;isPrime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Boolean&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;lazy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;res&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;isPrimeSlow&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+  &lt;span class=&quot;nf&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;缓求值在集合中的应用更能体现其价值。熟悉Python的同学知道生成器（generator）的概念，应用了缓求了集合与之类似，对于很大的集合，不是一次性生成（或者说根本就没有生成），只是需要的时候才吐出所需的元素。对比intsEager和intsLazy执行效果，便会发现对于寻找大于5的第一个数6而言，intsEager一次性生成了10万个元素，但比6大的元素对于求解结果毫无帮助，白白浪费了内存，简直是暴殄天物。如果把这个形式推到极限，对于有无限个元素的集合，似乎只有缓求方式才能胜任了。这下我们发现了，相比于”记忆”，缓求倒过来了，它是以临时计算来免除需要事先准备好的内存。&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intsEager&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;intsEager&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;intsEager&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;intsEager&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
 
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intsLazy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;until&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100000&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;intsLazy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;intsLazy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;until&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100000&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;intsLazy&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;_&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;以上，是纯函数为语言提供的额外特性，可以认为是一些与身俱来的优势。接下来分析纯函数为编程实践带来的好处，如何帮助提高代码质量，提高开发效率。&lt;/p&gt;
 
-&lt;h4 id=&quot;纯函数更易推断&quot;&gt;纯函数更易推断&lt;/h4&gt;
+&lt;h5 id=&quot;纯函数更易推断&quot;&gt;纯函数更易推断&lt;/h5&gt;
 &lt;p&gt;纯函数的签名已经把它的目的和盘托出了，不需要细看内部实现，就可以相信它没有多干其它小动作，所以不会有超乎签名的副作用和意外效果。经验不足的同学甚至在java的getter类方法中做了写操作：&lt;/p&gt;
-&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Integer&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Integer&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;visit&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;++;&lt;/span&gt;
   &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;num&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
@@ -461,49 +1275,45 @@
 &lt;p&gt;哪怕老手也难免有被糊弄的时候。比如，出乎意料，下面这段代码会访问网络，因为URL的hashCode方法会尝试解析域名。&lt;/p&gt;
 &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;notPure&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;URL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;URL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;http://example.com&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;Sets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newHashSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
-  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MalformedURLException&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;no&quot;&gt;URL&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;url&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;URL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;http://example.com&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;nc&quot;&gt;Sets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newHashSet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;MalformedURLException&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;c1&quot;&gt;//ignored&lt;/span&gt;
   &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;纯函数就没有这些问题，这是多么大的心智减负。&lt;/p&gt;
 
-&lt;h4 id=&quot;纯函数更易组合&quot;&gt;纯函数更易组合&lt;/h4&gt;
+&lt;h5 id=&quot;纯函数更易组合&quot;&gt;纯函数更易组合&lt;/h5&gt;
 &lt;p&gt;函数的组合（compose)，简单而言，就是把若干函数按一定顺序拼接组成新函数。&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compose&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;, &lt;span class=&quot;kt&quot;&gt;B&lt;/span&gt;, &lt;span class=&quot;kt&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;B&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;C&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;compose&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;, &lt;span class=&quot;kt&quot;&gt;B&lt;/span&gt;, &lt;span class=&quot;kt&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;B&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;C&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;B&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;C&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;后续会介绍，组合在函数式编程中有着举足轻重的地位。且看组合的具体应用——优雅的链式调用：&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;doThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;thenThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;andThenThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;doThisToo&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;andFinallyThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;doThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;thenThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;andThenThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;doThisToo&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;andFinallyThis&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;如果不是纯函数，很难想象可以放心地写出这段代码。doThis(a)如果改变了a，会怎么影响doThisToo的行为？如果各步骤共享了状态，拋了异常，代码的整体行为表现是怎样的？正确评估这些问题极其消耗心力。而纯函数的确定性，可以让后续步骤放心地依赖前面步骤的输出，代码的作用如字面语义一样跃然纸上。&lt;/p&gt;
 
-&lt;h4 id=&quot;纯函数更易测试和定位问题&quot;&gt;纯函数更易测试和定位问题&lt;/h4&gt;
+&lt;h5 id=&quot;纯函数更易测试和定位问题&quot;&gt;纯函数更易测试和定位问题&lt;/h5&gt;
 &lt;p&gt;唯一能影响函数行为的只有输入参数，没有不为人知的魔法，没有数据库、磁盘读写，所以不用关心函数外的环境因素，进而在不同人的电脑上debug效果一样。同理，指令式编程过程中费时费力的单步调试，此时不再重要了，关心函数的输出即可。&lt;/p&gt;
 
-&lt;h4 id=&quot;纯函数更易并发&quot;&gt;纯函数更易并发&lt;/h4&gt;
+&lt;h5 id=&quot;纯函数更易并发&quot;&gt;纯函数更易并发&lt;/h5&gt;
 &lt;p&gt;纯函数保证值不变性，值一旦生成就不再改变，无论是同一线程还是多个线程，都不允许修改。所以连锁都免了，更没有死锁或数据竞态问题了。&lt;/p&gt;
 
 &lt;p&gt;因为没有副作用，从出入参就可以看出函数之间的依赖关系，如果前后没有数据依赖，其先后顺序便可以交换，或者在多个线程中独立运行而不相互干涉。如下面代码中，f、g、h在字面上的先后顺序是固定的，但编译器完全可以根据需要改动实际执行顺序，或者优化为并发执行。如果它们有副作用，比如暗地里修改了共享的状态，就不能这么轻巧地优化了。&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;h&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;h&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;我们从回顾众所周知的函数开始，再区分纯函数和非纯函数，进而专注于纯函数式的特点、好处。接下来，如何不是特别说明，提到函数时指的就是纯函数。函数式编程，更准确的说法应该是”纯函数”式编程。纯函数所带来的好处构成了函数式编程的核心优势，这点后续将有更多体现。&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;&lt;em&gt;本文节选自&lt;a href=&quot;https://github.com/vitrun/scalazen&quot;&gt;《函数式思维学习录》&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
 </description>
-        <pubDate>Sat, 20 Oct 2018 14:30:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2018/10/20/why-pure-function.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/20/why-pure-function.html</guid>
+        <pubDate>Sat, 20 Oct 2018 12:15:09 +0800</pubDate>
+        <link>http://localhost:4000/computer/2018/10/20/why-pure-fp.html</link>
+        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/20/why-pure-fp.html</guid>
         
         
         <category>computer</category>
@@ -536,21 +1346,21 @@
 &lt;/ul&gt;
 
 &lt;p&gt;回顾之前的定义，对于数学意义上的函数，定义域的元素总能唯一对应值域的元素，加上数学是一种逻辑符号语言，自然没有副作用。那么不难理解，表达这些数学含义的代码函数（scala.math._里定义的函数）也应该是纯函数，如：square, min, max, abs等。或者你自定义的计算，如：&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;squareSum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;squareSum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;很多常用类的方法，并不改变方法之外的类属性，也不进行I/O操作，也是纯函数。如String的charAt, isEmpty, length；集合类型的drop（没错，drop也是）, filter, map等。&lt;/p&gt;
 
 &lt;p&gt;再来看看纯函数的反例。同样是数学上的运算，如果函数拋出异常，就不纯了，因为异常时没有和输入对应的结果。&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;x:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;y:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Int&lt;/span&gt;
 
-&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;java&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lang&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;ArithmeticException&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;by&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;zero&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;scala&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;divide&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;java&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;lang&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;py&quot;&gt;ArithmeticException&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;by&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;zero&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;也不是所有集合类的方法都是纯函数，foreach方法就是专门为副作用准备的。&lt;/p&gt;
-&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;foreach&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Unit&lt;/span&gt;
+&lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;foreach&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;](&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;A&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;U&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Unit&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;Unit在scala中表示”没有东西”，如果一个函数接受了输入，但不返回任何结果，那么它做的工作就只能是”副作用”了。&lt;/p&gt;
 
@@ -558,26 +1368,22 @@
 &lt;ul&gt;
   &lt;li&gt;getDayOfWeek，getHour，getMinute等方法，因为不同时刻调用它们得到的结果不同。&lt;/li&gt;
   &lt;li&gt;scala.util.Random中用于生成随机数的nextInt，因为返回值依赖了输入之外的隐藏状态。&lt;/li&gt;
-  &lt;li&gt;I/O操作，如&lt;code class=&quot;highlighter-rouge&quot;&gt;def println(x: Any): Unit&lt;/code&gt;和&lt;code class=&quot;highlighter-rouge&quot;&gt;def readLine(): String&lt;/code&gt;。所以，当发现签名的入参为空或出参为Unit时，就得擦亮眼睛了。&lt;/li&gt;
+  &lt;li&gt;I/O操作，如&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;def println(x: Any): Unit&lt;/code&gt;和&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;def readLine(): String&lt;/code&gt;。所以，当发现签名的入参为空或出参为Unit时，就得擦亮眼睛了。&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;此外，面向对象语言里常见的setter方法，或改变了所在对象的状态的方法也不是纯函数，如：&lt;/p&gt;
 &lt;div class=&quot;language-scala highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;object&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;pureFunction&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;k&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
 
-  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;delta&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;addNum&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;delta&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;Int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;delta&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;num&lt;/span&gt;
   &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;至此，我们已经能辨别纯函数，可纯函数有什么好处呢？&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;&lt;em&gt;本文节选自&lt;a href=&quot;https://github.com/vitrun/scalazen&quot;&gt;《函数式思维学习录》&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
 </description>
-        <pubDate>Fri, 05 Oct 2018 14:30:09 +0800</pubDate>
+        <pubDate>Fri, 05 Oct 2018 12:15:09 +0800</pubDate>
         <link>http://localhost:4000/computer/2018/10/05/what-is-pure-function.html</link>
         <guid isPermaLink="true">http://localhost:4000/computer/2018/10/05/what-is-pure-function.html</guid>
         
@@ -611,7 +1417,7 @@
 
 &lt;p&gt;有多种处理“孤立”叶子节点的方式。一种方案是不断重复最后一个节点，直到整体数量达到2^n
 个。这种方案的想法比较直接，缺点也很明显，多做了很多无用功。比较好的方法是，把“孤立”节点提升到更高层次中。具体提到哪一层，要看叶子节点的数量情况，下图展示了5-7个叶子节点的情况：&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;     ┌───┴──┐          ┌────┴───┐            ┌─────┴─────┐
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;     ┌───┴──┐          ┌────┴───┐            ┌─────┴─────┐
   ┌──┴──┐   │       ┌──┴──┐     │         ┌──┴──┐     ┌──┴──┐
 ┌─┴─┐ ┌─┴─┐ │     ┌─┴─┐ ┌─┴─┐ ┌─┴─┐     ┌─┴─┐ ┌─┴─┐ ┌─┴─┐   │
        (5)                 (6)                    (7)
@@ -743,189 +1549,6 @@
         
         
         <category>computer</category>
-        
-      </item>
-    
-      <item>
-        <title>程序员的核心能力</title>
-        <description>&lt;p&gt;程序员要掌握的知识，要具备的能力实在太多，多得头发都不够掉。&lt;/p&gt;
-
-&lt;p&gt;大体有两大方向。一是对工具的熟练掌握，如操作系统、网络、IO、编程语言等；另一个是用代码为现实问题生成解决方案的能力，这其中最重要的是抽象能力。&lt;/p&gt;
-
-&lt;p&gt;前一个方向是很容易意识到的，很多现象可以说明这一点，比如，世面上介绍如何使用语言、框架的书汗牛充栋；比如，很多人眼里进这一行的门槛是上1个月的语言培训课。&lt;/p&gt;
-
-&lt;p&gt;工具的意义不容否认，为此我还写过一篇&lt;a href=&quot;/computer/2015-12-20-tool-awareness.md&quot;&gt;《工具优先》&lt;/a&gt;。但工具的生命周期其实很短，从个人发展角度看，把过多时间投入到半衰期很短的事物上，并不划算。我入门时接触的是Pascal, BasicScript, ASP, IIS，不知道现在还有没有人用这些。很多程序员也赶时髦，本来写java的，golang流行了，python流行了，学！本来搞业务开发的，大数据火了，机器学习火了，学！打的旗号自然很鲜明：持续学习。几次之后，却怅然若失，貌似没一个是拿得出手的，不过是低水平重复，换个工具，继续做原来的事而已。充其量效率提高了，但效率型工作是可替代性最强的，被其它人替代，被机器替代。&lt;/p&gt;
-
-&lt;p&gt;一颗上进爱学习的心，怎么就被辜负了呢？因为核心能力没有提升。人的能力好比电子围绕原子核旋转，大部分情况下处于巡航状态，在这过程中不断积蓄能量，始终向核心方向用力，就会跃迁到更高级轨道（这里指更靠近核心的轨道，实际电子是更远离核心的道）。“一万小时理论”和“10万行代码理论”只片面强调了量，如果没有聚焦核心，刻意练习，只能是低水平重复，甚至轨道降级。&lt;/p&gt;
-
-&lt;p&gt;核心是抽象能力。这个世界的运行，有讲逻辑的，也有不讲逻辑的。程序员要处理的事是讲逻辑的那部分，因为你所依赖的计算机是讲逻辑的，要让它意气用事，感情用情，目前还很困难。通过抽象，我们识别并保留逻辑部分，抛弃其它内容，然后用计算机语言翻译、实现这个逻辑，进而解决问题。&lt;/p&gt;
-
-&lt;p&gt;抽象这个词，本身就挺抽象的。到底什么是抽象？&lt;/p&gt;
-
-&lt;p&gt;抽象是去除多余和细节。比如下面这个标志，一看就懂是座拱桥，但并没有显示拱桥的幅度、宽度和长度，因为这些数据对于你意识到这是一座拱桥并没有帮助。&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/img/2017.4/bridge.webp&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;什么是多余信息，取决于目的。考虑地铁换乘图，其目的是告诉乘客该搭哪条线，在哪里换乘，所以保留了结构关系：站点的分布，以及线路的汇合点，但忽略了物理关系：站点的地理位置、相对距离，甚至扭曲了线路的方向。而如果是开车用的导航图，则必须保证比例尺和实际情况一致，方向也不能有差错，以免误导。&lt;/p&gt;
-
-&lt;p&gt;抽象是建立模板或蓝图。不少公司里有邮件模板、文档模板、PPT模板、报销单模板，等等，它们规定好了结构、风格，并留出一个个空白，使用的时候填空就好。模板描述不变的内容，变量则延迟到使用场景中确定。Java编程时，经常要应用各种设计模式，其实质是通过抽象，固化不变的，封装变化的。比如，很常用的模板方法，流程和步骤无论什么场景都不变，已经在父类写好了，将具体场景的方法在父类里声明，但延迟到子类实现，封装的是方法实现。又比如，创建对象时，不常写new Tesla()，而是运用简单工厂模式，写成TeslaFactory.create()，因为对象的创建是易变的。与其在特斯拉多一个型号时，把所有new的地方都改一遍，不如在create方法里集中改。&lt;/p&gt;
-
-&lt;p&gt;总之，抽象是应对变化，或者说寻找不变性的手段。既可以是不同事物之间的不变性，也可以是同一事物不同历史时间的不变性。虽然这里讲的是编程，但其应用远不止于此，看看贝索斯是怎么说的：&lt;/p&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;我常被问一个问题：“在接下来的10年里，会有什么样的变化?”……但我很少被问到“在接下来的10年里，什么是不变的?”我认为第二个问题比第一个问题更加重要，因为你需要将你的战略建立在不变的事物上。&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;有了上面的解释，便不难理解面向对象编程的原则：依赖接口而不是实现，依赖抽象类而不是具体类。它让代码的适应性更强，将来少改代码，少出错。同时，做一些参数设定时，更加有理有据，而不是trial and error。线程池大小怎么定？不用关心具体工作，分析阻塞和非阻塞的时间比例，应用Amdahl’s law搞定。队列大小怎么定？不管究竟放的是什么，确定你期望的排队时长，用Little’s law算下。&lt;/p&gt;
-
-&lt;p&gt;世面上鲜有讲如何培养抽象思维的书，设计模式一类的，算搭一点边，但那是人家抽象的结果，而不是关于抽象的方法。也许我们在运用这些模式，或浏览一些工具和类库的代码过程中，偶有灵光一现，能从这些结果中反推作者的设计思想和精妙之处，毕竟它们也是抽象的结果。&lt;/p&gt;
-
-&lt;p&gt;学习使用工具时，如果多个心眼，留意为什么有这个工具，做了什么取舍，工具于你将不仅是效率意义。做业务开发时，如果不是简单地翻译需求，多想一层，哪里易变，哪里不易变，如何隔离变化，再简单的开发，于你也有精进意义。&lt;/p&gt;
-
-&lt;p&gt;抽象的层级可以有很多，能做多少层级的抽象是一种能力，而判断需要多少层级的抽象则是一种艺术。&lt;/p&gt;
-
-&lt;p&gt;地上一个猴，树上七个猴，一共有几个猴？1+7=8，一共八个猴，用数字符号代替猴子，这是第一层。从对象到数字，大多数人对此熟悉到甚至没有意识到这是一种抽象。再进一层，则有些困难了，当初我理解“加速度”这个概念，就费功。不光是数量，还有结构的抽象，关系的抽象。当然，它们离我们都很远……&lt;/p&gt;
-
-&lt;p&gt;可是，真的很远吗？当大部分人在关心如何写程序时，有人开始研究如何用程序写程序，当大部分人在关心如何看书、学习时，有人在教别人看书、学习。&lt;/p&gt;
-</description>
-        <pubDate>Sun, 26 Nov 2017 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2017/11/26/core-skill-programmer.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2017/11/26/core-skill-programmer.html</guid>
-        
-        
-        <category>computer</category>
-        
-      </item>
-    
-      <item>
-        <title>股价到底可不可预测</title>
-        <description>&lt;p&gt;&lt;img src=&quot;/img/2017.2/stock-price.png&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;昨晚ali太屌了&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;微信上，老田没头没脑来这么一句。我的第一反应是去看股价，果然屌，一夜之间涨了超过13%。&lt;/p&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;你买了吗？&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;略不好意思地回答：&lt;/p&gt;
-&lt;blockquote&gt;
-  &lt;p&gt;20股…上市当天拿到现在…&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;我在股市大抵就是这样，赚钱的买得少，亏钱的买了一堆。辛酸血泪史，就不多提了。&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;为什么会一天之内涨这么多？&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;昨天开了个投资者大会&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;我没有继续问，但心里埋着第二问：“为什么开个会，效果这么好？”&lt;/p&gt;
-
-&lt;p&gt;最近，撸了个“时间交易所”，可以理解为股市的翻版，所以对这类问题稍微敏感了些。其实，对这个问题，大家多少都能回答一些：会上披露的收入增长远高于市场预期，推动股价上涨。&lt;/p&gt;
-
-&lt;p&gt;足够简洁，但意尤未尽，有没有更底层，更系统的解释？凑巧翻出了积灰近两年的《经济学通识》，释疑解惑。&lt;/p&gt;
-
-&lt;p&gt;要在时间流逝中发挥功能的商品或资源，叫着易耗品。易耗品的价格完全建立在人们对未来的主观估计上。&lt;/p&gt;
-
-&lt;p&gt;股票是一种耐用品。股票的价格，是股票未来全部预期收益的现值。股票价格的变动，是人们对股票未来全部收益预期的变动。&lt;/p&gt;
-
-&lt;p&gt;看看真正的高手是如何把握这一特点的：&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;我决定买苹果以前主要想的是他们是不是还有可能成长，有多大的空间可以成长，威胁都可能来自什么地方，等等。我不去想他现在的股价和过去的股价。——段永平&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;人们现在愿意花多少钱买一只股票，取决于他们预计将来能从中获得多少。认识一变，价格就变。阿里的投资者大会，披露了有关未来事件的信息，改变了人们的认识，进而反应在股价上。&lt;/p&gt;
-
-&lt;p&gt;既然 “人们对事物发展变化的认识变化”决定了价格的变动，那么，认识是如何变化的？&lt;/p&gt;
-
-&lt;p&gt;很遗憾，认识的变化没有规律。&lt;/p&gt;
-
-&lt;p&gt;在现实世界中，一切都按自然规律，有条不紊地进行着，但在观念世界中，人们在不断形成、比较、交换和修正对未来的预期。哲学家波普尔说：&lt;/p&gt;
-
-&lt;p&gt;只要知识是增长的，那就必定有部分知识是我们明天才知道的。&lt;/p&gt;
-
-&lt;p&gt;尽管事物的变化是有规律可循的，但新信息的内容和披露时间，是不可预知的。今天的你不知道明天的你会知道什么。有点绕口，美国前国防部长拉姆斯菲尔德在一次记者招待会上有有段rap式的描述:&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;There are known knowns; there are things we know we know. We also know there are known unknowns; that is to say we know there are some things we do not know. But there are also unknown unknowns – the ones we don’t know we don’t know.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;用过去的图表、曲线预测未来的趋势，是不靠谱的。于是，我默默地取关了github上预测比特币价格的repo。试图发现和掌握认识变化、信息批露的规律，也是徒劳的。怎么办？回归价值投资，老老实实研究公司的基本面，考察未来的盈利能力吧。&lt;/p&gt;
-
-&lt;p&gt;如果还想动点“歪脑筋”呢？&lt;/p&gt;
-
-&lt;p&gt;还是在人身上找机会吧，毕竟股市是人发明的，也是人在玩的，我们要战胜的不是客观规律，也不是股市规则，而是演对手戏的人。他人的弱点，正是你的机会。&lt;/p&gt;
-
-&lt;p&gt;人常常是不理性的，但不理性的行为一旦被识别，就成了新的知识，就会被其他人理性地运用。对于信息披露，有人会“反应迟钝”，有人会“过度反应”，还有人会“惯性行动”。比如，大涨之后，常常出现回调，阿里这次也不例外，创新高之后，便稳步下跌。以及，大跌之后，常常过度下跌。这些是大概率重复出现的现象，于是就有人以此来牟利，而这种新认识马上又会反映到价格上。“在别人贪婪时恐惧，在别人恐惧时贪婪。”，说的大概就是这个理。只是贪婪和恐惧的程度，过度反应何时开始，惯性行动止于何处，都不是容易预测的。近年来，利用大数据技术分析 Twitter 用户的情绪预来测股价涨跌，就是一种尝试。&lt;/p&gt;
-
-&lt;p&gt;alswl说，他新公司有同事在尝试追财报买股票，赌财报发布后股价会上涨。脑筋转得挺快，就不知道效果如何了。&lt;/p&gt;
-</description>
-        <pubDate>Sun, 18 Jun 2017 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/thinking/2017/06/18/stock-price.html</link>
-        <guid isPermaLink="true">http://localhost:4000/thinking/2017/06/18/stock-price.html</guid>
-        
-        
-        <category>thinking</category>
-        
-      </item>
-    
-      <item>
-        <title>不为人知的阅读模型</title>
-        <description>&lt;p&gt;&lt;img src=&quot;/img/201612/reading-model.jpeg&quot; alt=&quot;&quot; class=&quot;img-responsive&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;上周讲了读书的效率问题，这周再说说质量问题。&lt;/p&gt;
-
-&lt;h4 id=&quot;价值衰减模型&quot;&gt;价值衰减模型&lt;/h4&gt;
-&lt;p&gt;永泽有个原则：“对死后不足三十年的作家，原则上是不屑一顾的”，意思是没有经受住时间考验的作品，不值一看。这个原则可以拓展为，不仅看“过去”，也要看“未来”：书中所讲的内容，在未来多少年内依然成立？时间越短，越不值得去读。毕竟，精力有限，我希望回报能长久一点。&lt;/p&gt;
-
-&lt;p&gt;任何信息，包括书，都有保值期。&lt;/p&gt;
-
-&lt;p&gt;只是这个保值期，不像食品的保质期一样有明确的时间点。它甚至不是一个“二值”化的阶跃函数，而是一个连续变化的曲线。&lt;/p&gt;
-
-&lt;p&gt;有些书，价值是个常量，不随时间的变化而变化。比如数学，即使地球消失了，它依然有价值。有些书，还没写完，价值就开始衰减。比如，讲林丹出轨之类的八卦杂志。&lt;/p&gt;
-
-&lt;p&gt;基础模型确定了，接下来要细化。哪些书是常量型的，哪些是衰减型的，衰减的速度是多少。明确这些，就不难决择了。不知道你有没有注意到，这个模型不光是适用在选书这一个场景，判断一件事值不值得做，值得投入多少精力，都可以用这个“价值衰减模型”。从一个场景、案例、细节中发现规律，总结、归纳，抽象出模型，并把它应用到其它场景，这叫迁移。理解力，决定了你能吸收多少，而迁移力，决定了你能运用多少。&lt;/p&gt;
-
-&lt;p&gt;上周，在公司的读书分享会上介绍了《Math Better Explained》一书，着重讲了自然底数e。&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;e is the base amount of growth shared by all continually growing processes&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;所有持续增长（其实也包括减少）的过程，都有共同的基数e。类似复利、放射性元素的衰减……e像一根线把这些原本散落的，随时可能脱落的点串了起来。我的知识架构上又多了一个钩子，可以连接原本不通的节点，又可以为以后挂载新节点做铺垫。这是我十分珍视的东西，一看到钩子型知识，就两眼放光。&lt;/p&gt;
-
-&lt;h4 id=&quot;收益函数模型&quot;&gt;收益函数模型&lt;/h4&gt;
-&lt;p&gt;价值衰减慢的，不一定对你就是好书。涉及个人时，在“价值衰减模型”基础上还要看它能给你带来多少收益。&lt;/p&gt;
-
-&lt;p&gt;给团队贴过一篇博客：《The Immutability of Math and How Almost Everything Else Will Pass》，很让人触动的博客，它让我真正意识到了知识是存在保质期的。而上面对e的理解又提醒我，知识在保质期内应该是持续衰减的过程。你在不同地方，不同时间看的书会不经意间碰撞，融合，产生新的见解。这种碰撞是不可预期的，只有事后回顾才能发现，就像乔布斯说的：&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;You can’t connect the dots looking forward; you can only connect them looking backwards. So you have to trust that the dots will somehow connect in your future.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;看书的收益正比于数量的平方。A看了5本，B 4本，C 3本。虽然绝对数量上A少于B和C之和，但A的收益等于二者之和。当然，前提是他们联想、撮合知识点的能力是一样的。&lt;/p&gt;
-
-&lt;p&gt;为什么是平方？这是我臆想的，没法论证。你也可以说成是立方，阶乘。当然，不幸的话，开方也是有可能的。这不是重点，我重点强调的是，这是个非线性的关系，影响收益函数的因素有：读书量，以及所读内容之间产生化学反应的量级。我觉得大部分人的收益要好于线性函数，但又不至于好到夸张，所以用了平方。我称之为“收益函数模型”。&lt;/p&gt;
-
-&lt;p&gt;那么，有什么启发？首先，要改变单纯追求数量的观念，多不等于好；其次，要选择那些跟你已有知识体系能产生反应的书籍。一本书，看完很长时间后，内心依然平静如水，甚至快过了保值期，还激不起半点涟漪，无疑就是一次失败的阅读。如果你也写作，看完后有没有写点什么的冲动，也是一个不错的验证方式。&lt;/p&gt;
-
-&lt;h4 id=&quot;好莱坞大片模型&quot;&gt;好莱坞大片模型&lt;/h4&gt;
-&lt;p&gt;现实生活中和人发生冲突的可能性很小，我把它转移到了书上：看书最好要能制造冲突。你带观点时，就和纸面、屏幕后面的作者来一场辩论；不带观点时，就当捣蛋鬼专门给老师难堪。不论书中内容如何，刻意制造冲突，看书的过程就是一部跌宕起伏的大戏。一会儿作者冲着你骂“傻X，还用这种过时的方式看待世界！”，一会儿你还道：“我早知道了，啰里吧嗦！”，扳回一局。这样看书确实挺累，有时候为了搞懂或者反驳对方一个论点，百度谷歌齐上阵，翻箱倒柜，扯出好多资料。但你是带情绪的，带感情的，印象深刻，以后发生化学反应的概率就大了。&lt;/p&gt;
-
-&lt;p&gt;当然，你也可以用苏格拉底式辩论法——提问，心平气和地提问，直到对方意识到他错了。不过这有点难，毕竟苏格拉底不是想学就能学的。&lt;/p&gt;
-</description>
-        <pubDate>Wed, 07 Dec 2016 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/reading/2016/12/07/on-reading.html</link>
-        <guid isPermaLink="true">http://localhost:4000/reading/2016/12/07/on-reading.html</guid>
-        
-        
-        <category>reading</category>
         
       </item>
     

@@ -24,7 +24,7 @@
     <div class="post-content"?>
         <p>某君不无兴奋地跟我说他有个重大发现: java里最小负整数的绝对值等于它本身! 程序员朋友可以试试以下判断:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Math.abs(int.MIN_VALUE) == int.MIN_VALUE
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Math.abs(int.MIN_VALUE) == int.MIN_VALUE
 </code></pre></div></div>
 
 <p>不管怎样, 取绝对值后一定是个正数, 怎么可能等于一个负数呢.乍一看, 太二和尚摸不着头脑. 向来以精准著称计算机世界, 怎么会得出如此可笑的结论?</p>
@@ -38,21 +38,21 @@
 <p>计算机是以二进制方式表示数字的, 其中负数又以补码的方式表示. 当回忆起这点的时候, 有一个问题吸引了我:为什么负数要用补码表示呢?, 这似乎是一个和1+1为什么等于2一样傻的问题, 所以当年聪明的我没敢问老师为什么. 如今智商越发下降, 类似的问题也越来越多, 然后, 像小孩子发现更好玩的玩具一样, 开头那个问题就被晾在一边了…</p>
 
 <p>大概一开始人们也没设计出补码这玩意儿, 毕竟谁会上来就找麻烦搞这么复杂的东西. 应该是很自然地第一位是符号位, 0表示正数, 1表示负数, 剩下是表示值的多少. 当然, 对于人类轻而易举想到的答案, 上帝一般是要发笑的. 这个方案会有什么问题呢? 让我们简单地假定整数是用3个比特表示的, 其表示的所有数字, 排列组合如下:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000: 0, 001: 1, 010: 2, 011: 3, 100: -0, 101: -1, 110: -2, 111: -3
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000: 0, 001: 1, 010: 2, 011: 3, 100: -0, 101: -1, 110: -2, 111: -3
 </code></pre></div></div>
 <p>这样也能work. 但很显然的不足是, 0有两种表示法, 有点浪费空间了. 还有一个更隐蔽的缺点, 用一道题来说明. 按上述规则计算下1-1, 也就是1+(-1)的结果.</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>001+101=110
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>001+101=110
 </code></pre></div></div>
 
 <p>110就是-2, 显然不对. 那么如何设计才能让同时弥补上述两个缺点呢? 这时候, 补码就隆重登场了. 按补码的规则重新穷举上述排列:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000: 0, 001: 1, 010: 2, 011: 3, 100: -4, 101: -3, 110: -2, 111: -1
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000: 0, 001: 1, 010: 2, 011: 3, 100: -4, 101: -3, 110: -2, 111: -1
 </code></pre></div></div>
 
 <p>0不再重复了, 表示的空间从[-3, 3], 扩大到[-4, 3]. 而且1-1的计算, 变得简单自然, 丝般顺滑(最高位溢出):</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>001+111=000
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>001+111=000
 </code></pre></div></div>
 
 <p>因此, 不必为加法和减法设计两套计算电路! 两个看似不同, 甚至对立的逻辑, 得到了统一. 设计之巧妙, 令人叹服. 看似很傻的问题, 细细研究, 原来这般微妙, 优雅得简直像艺术品, 不得不佩服提出补码那位兄台.</p>
