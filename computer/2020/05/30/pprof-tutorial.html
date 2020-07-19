@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    
+        <title>Go性能诊断工具pprof入门</title>
+    
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <header class="site-header" role="banner">
+    <div class="wrapper">
+    <a class="site-title" href="/">Food for Thought Expected</a>
+    </div>
+    </header>
+    <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+        <div class="post">
+    <h3 class="post-title">Go性能诊断工具pprof入门</h3>
+    <p class="post-date">2020-05-30</p>
+    <p class="post-meta"></p>
+    <div class="post-content"?>
+        <p>测试环境一个api应用突然cpu飙高，稳定在98%……</p>
+
+<p>第一反应是jstack看下是不是代码里有死循环了？然而这是go不是java，只能在go的生态里重新寻找类似工具。</p>
+
+<p>切换语言时，除了改变写代码的语言，有必要<strong>熟悉维护应用、定位问题的工具链</strong>。这里简单介绍go pprof的使用，以求需要时不必临时google，能以最快速度开始定位问题。</p>
+
+<blockquote>
+  <p>pprof is a tool for visualization and analysis of profiling data.</p>
+</blockquote>
+
+<p>安装请执行：
+<code class="language-plaintext highlighter-rouge">go get -u github.com/google/pprof</code></p>
+
+<h3 id="cpu-profile">cpu profile</h3>
+<ul>
+  <li>找到容器的IP和debug端口对应的访问端口。</li>
+  <li>执行<code class="language-plaintext highlighter-rouge">go tool pprof -http=:6061 http://$ip:$port/debug/pprof/profile</code>
+需要一段时间来采样，耐心等待下。采样结束后，将自动在浏览器中打开可视化分析页面。不加<code class="language-plaintext highlighter-rouge">-http=:6061</code>时将在终端使用命令行方式交互。</li>
+</ul>
+
+<p>采样数据默认放到~/pprof/目录下，可通过以下命令直接指定文件进行分析。
+<code class="language-plaintext highlighter-rouge">go tool pprof -http=:6061 ~/pprof/xxx.pb.gz</code></p>
+
+<h4 id="top-view">Top view</h4>
+<p>效果如下：
+<img src="/img/202005/ppro-1.jpg" alt="IMAGE" /></p>
+
+<p>重点是理解<code class="language-plaintext highlighter-rouge">Flat</code>、<code class="language-plaintext highlighter-rouge">Sum</code>和<code class="language-plaintext highlighter-rouge">Cum</code>三个指标。对于函数<code class="language-plaintext highlighter-rouge">foo</code>：</p>
+<div class="language-go highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">func</span> <span class="n">foo</span><span class="p">(){</span>
+    <span class="n">a</span><span class="p">()</span>                             <span class="c">// step1 takes 1s</span>
+    <span class="n">b</span><span class="p">()</span>                             <span class="c">// step2 takes 1s</span>
+    <span class="n">do</span> <span class="n">something</span> <span class="n">directly</span><span class="o">.</span>          <span class="c">// step3 takes 3s</span>
+    <span class="n">c</span><span class="p">()</span>                             <span class="c">// step4 takes 1s</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">flat</code>是step3的耗时，即3s。</li>
+  <li><code class="language-plaintext highlighter-rouge">cum</code>是<code class="language-plaintext highlighter-rouge">foo</code>的整体耗时，包括子函数和直接指令的耗时，即6s。</li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">sum</code>是截至当前行的累计耗时。</p>
+
+<p>上图的例子是调用了一次api的效果（服务器没有其它请求），耗时27s，大部分时间花在<code class="language-plaintext highlighter-rouge">go-polaris</code>这个库内，无论哪个指标出发，都很显然要重点看看<code class="language-plaintext highlighter-rouge">scanAttrEql</code>函数(结论是该函数死循环了)。</p>
+
+<h4 id="graph-view">Graph view</h4>
+<p>按调用层级从上到下显示调用图，需要安装<code class="language-plaintext highlighter-rouge">graphviz</code>：
+<code class="language-plaintext highlighter-rouge">brew install graphviz</code></p>
+
+<p>括号内的数值同top view。框的大小和箭头的粗细会随着耗时和增加而变大，比较直观。</p>
+
+<h4 id="flame-graph">Flame graph</h4>
+<p>倒置的火焰图，更常见的形式，也很直观。不展开，可参考<a href="https://www.ruanyifeng.com/blog/2017/09/flame-graph.html">如何读懂火焰图？</a></p>
+
+<h3 id="memory-profile">memory profile</h3>
+<p>执行:
+<code class="language-plaintext highlighter-rouge">go tool pprof -http=:6061 http://$ip:$port/debug/pprof/heap</code>
+几个view的解读同cpu profile，不再重复。需要指出的是内存分析比较关心的两个指标，通过在命令中添加以下参数可以获得：</p>
+<ul>
+  <li><strong>-inuse_space</strong>：分析程序<strong>常驻</strong>内存的占用情况，数值大说明程序当前时刻内存占用较多。</li>
+  <li><strong>-alloc_objects</strong>：分析内存的<strong>临时分配</strong>情况，记录程序累计分配的对象，数值大说明有很多对象经常需要临时分配，然后在gc的时候又被释放，对gc的影响比较大。gcPause问题比较严重的时候可以关注这个指标。</li>
+</ul>
+
+<h3 id="其它profile">其它profile</h3>
+<p><code class="language-plaintext highlighter-rouge">cpu</code>和<code class="language-plaintext highlighter-rouge">memory</code>是常用的的profile类型，值得事先花点时间掌握，其余的可在碰到需求时临时查阅文档。</p>
+
+<p>访问<code class="language-plaintext highlighter-rouge">http://$ip:$port/debug/pprof/</code>得到整体可供profile的选项：</p>
+<ul>
+  <li>cpu（CPU Profiling）: /debug/pprof/profile，默认进行 30s 的 CPU Profiling，得到一个分析用的 profile 文件</li>
+  <li>block（Block Profiling）：/debug/pprof/block，查看导致阻塞同步的堆栈跟踪</li>
+  <li>goroutine：/debug/pprof/goroutine，查看当前所有运行的 goroutines 堆栈跟踪</li>
+  <li>heap（Memory Profiling）: /debug/pprof/heap，查看活动对象的内存分配情况</li>
+  <li>mutex（Mutex Profiling）：/debug/pprof/mutex，查看导致互斥锁的竞争持有者的堆栈跟踪</li>
+  <li>threadcreate：/debug/pprof/threadcreate，查看创建新OS线程的堆栈跟踪</li>
+</ul>
+
+<h3 id="延伸讨论">延伸讨论</h3>
+<h4 id="启用方式">启用方式</h4>
+<p>pprof主要有三种数据获取方式：</p>
+<ul>
+  <li>runtime/pprof: 手动调用<code class="language-plaintext highlighter-rouge">runtime.StartCPUProfile</code>或者<code class="language-plaintext highlighter-rouge">runtime.StopCPUProfile</code>等 API来生成和写入采样文件</li>
+  <li>net/http/pprof: 通过 http 服务获取Profile采样文件，简单易用，适用于对应用程序的整体监控。通过 runtime/pprof 实现。如果在自己的程序中需要支持pprof，推荐此方式，只需要引入这个依赖即可：<code class="language-plaintext highlighter-rouge">import _ "net/http/pprof"</code></li>
+  <li>go test: 通过<code class="language-plaintext highlighter-rouge">go test -bench . -cpuprofile prof.cpu</code>生成采样文件 适用对函数进行针对性测试</li>
+</ul>
+
+<h4 id="原理">原理</h4>
+<p>没有正式的文档，参考golang团队成员ian lance taylor的一段回答：</p>
+<blockquote>
+  <blockquote>
+    <p>Is it true that pprof is a stop-the-world sampler? Does it periodically stop
+the program being profiled to collect information?</p>
+  </blockquote>
+
+  <p>No.</p>
+
+  <p>Is pprof a statistical/stochastic profile?</p>
+
+  <p>Yes.</p>
+
+  <blockquote>
+    <p>Is it also an event based profiler?</p>
+  </blockquote>
+
+  <p>Yes.</p>
+
+  <blockquote>
+    <p>I know it doesn’t run at the kernal level, but where in the OS does pprof
+profile?</p>
+  </blockquote>
+
+  <p>As you say, the net/http/pprof package is basically a wrapper around
+the runtime/pprof package.</p>
+
+  <p>For CPU profiling, runtime/pprof works by periodically interrupting
+the program.  On Unix-like systems, this is done using setitimer to
+send a periodic SIGPROF signal.  When this signal arrive, the
+goroutine that receives it stores a stack trace.  This very briefly
+stops the goroutine being profiled, but it doesn’t affect the rest of
+the program.</p>
+
+  <p>For heap profiling, the memory allocator tracks the number of
+allocations it has done, and periodically records a stack trace.</p>
+</blockquote>
+
+<h4 id="overhead">overhead</h4>
+<p>凡事都有成本，采样时的成本(只有访问debug profile时才会引入该成本，只是引入依赖不会有成本)：</p>
+
+<blockquote>
+  <p>pprof is safe to use in production. We target an additional 5% overhead for CPU and heap allocation profiling</p>
+</blockquote>
+
+<p>另一google员工的描述：</p>
+<blockquote>
+  <p>At Google, we continuously profile Go production services and it is safe to do so.</p>
+</blockquote>
+
+<p>单纯讨论这一成本是高低意义不大，这里涉及一个更大的话题：<a href="https://medium.com/google-cloud/continuous-profiling-of-go-programs-96d4416af77b">Continuous Profiling of Go programs</a></p>
+
+<h3 id="参考文档">参考文档</h3>
+<ul>
+  <li><a href="https://github.com/google/pprof/blob/master/doc/README.md">Google/pprof readme</a></li>
+  <li><a href="https://golang.org/pkg/net/http/pprof/">Package pprof</a></li>
+  <li><a href="https://stackoverflow.com/questions/32571396/pprof-and-golang-how-to-interpret-a-results">Pprof and golang - how to interpret a results
+</a></li>
+  <li><a href="https://bytedance.feishu.cn/wiki/wikcnRO5EewsntuRMbB4DPzescf#">Go pprof 业务中实战</a></li>
+  <li><a href="https://groups.google.com/forum/#!topic/golang-nuts/PiFa55aX7Ds">How does pprof work under the hood</a></li>
+</ul>
+
+    </div>
+</div>
+<div class="post-foot">
+<p>微信扫一扫</p>
+<img class="image-responsive" src="/img/wx.jpg" alt="路过的世界" />
+</div>
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_developer = 1;
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+var disqus_config = function () {
+    this.page.url = "http://localhost:4000/computer/2020/05/30/pprof-tutorial.html";  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "Go性能诊断工具pprof入门"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//vitrun-github-io.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                    
+
+    </div>
+    </main>
+<footer class="site-footer">
+  <div class="wrapper">
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+         <span><a href="/yzr.html"><span class="icon icon--me"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20 21.193l-.003.807h-19.993l-.004-.833c-.009-2.224.088-3.495 2.647-4.086 2.805-.647 5.573-1.227 4.242-3.682-3.943-7.275-1.123-11.399 3.111-11.399 4.153 0 7.043 3.971 3.11 11.398-1.292 2.44 1.375 3.02 4.242 3.682 2.57.594 2.657 1.873 2.648 4.113zm4-17.193h-7v2h7v-2zm0 4h-7v2h7v-2zm0 4h-7v2h7v-2z"/></svg>
+         <span><a href="https://github.com/vitrun"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span></a></span>
+         <span><a href="https://twitter.com/gnogle"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+         <span><a href="/feed.xml"><span class="icon icon--rss"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-1.29 14.646c0 .748-.607 1.354-1.354 1.354-.749 0-1.356-.606-1.356-1.354 0-.747.607-1.353 1.355-1.353.748.001 1.355.606 1.355 1.353zm-2.71-5.237v2.004c2.521.025 4.567 2.068 4.592 4.587h2.008c-.026-3.629-2.965-6.566-6.6-6.591zm0-1.404c4.407.02 7.98 3.581 7.993 7.995h2.007c-.012-5.513-4.48-9.981-10-10v2.005z"/></svg>
+</span></a></span>
+<span class="hover_img">
+     <a href="#"><span><img src="/img/wx.jpg" alt="image" height="16" /></span></a>
+</span>
+      </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
