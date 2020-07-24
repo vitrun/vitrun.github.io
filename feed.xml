@@ -3,10 +3,10 @@
   <channel>
     <title>Food for Thought Expected</title>
     <description>while [ 'alive' ]; do think &amp;&amp; act | tee blog; done</description>
-    <link>http://localhost:4000/</link>
-    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 19 Jul 2020 21:39:13 +0800</pubDate>
-    <lastBuildDate>Sun, 19 Jul 2020 21:39:13 +0800</lastBuildDate>
+    <link>https://blog.yuzhi.run/</link>
+    <atom:link href="https://blog.yuzhi.run/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Fri, 24 Jul 2020 14:05:19 +0800</pubDate>
+    <lastBuildDate>Fri, 24 Jul 2020 14:05:19 +0800</lastBuildDate>
     <generator>Jekyll v3.8.7</generator>
     
       <item>
@@ -278,8 +278,8 @@ Encoding&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 </description>
         <pubDate>Sat, 20 Jun 2020 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2020/06/20/go-monkey-patch.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2020/06/20/go-monkey-patch.html</guid>
+        <link>https://blog.yuzhi.run/computer/2020/06/20/go-monkey-patch.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2020/06/20/go-monkey-patch.html</guid>
         
         
         <category>computer</category>
@@ -436,8 +436,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;/ul&gt;
 </description>
         <pubDate>Sat, 30 May 2020 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2020/05/30/pprof-tutorial.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2020/05/30/pprof-tutorial.html</guid>
+        <link>https://blog.yuzhi.run/computer/2020/05/30/pprof-tutorial.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2020/05/30/pprof-tutorial.html</guid>
         
         
         <category>computer</category>
@@ -819,8 +819,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;/ul&gt;
 </description>
         <pubDate>Sun, 26 Apr 2020 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2020/04/26/go-unit-test.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2020/04/26/go-unit-test.html</guid>
+        <link>https://blog.yuzhi.run/computer/2020/04/26/go-unit-test.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2020/04/26/go-unit-test.html</guid>
         
         
         <category>computer</category>
@@ -1109,8 +1109,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;/ul&gt;
 </description>
         <pubDate>Fri, 20 Sep 2019 14:30:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2019/09/20/coroutine.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2019/09/20/coroutine.html</guid>
+        <link>https://blog.yuzhi.run/computer/2019/09/20/coroutine.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2019/09/20/coroutine.html</guid>
         
         
         <category>computer</category>
@@ -1122,8 +1122,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
         <description>&lt;p&gt;近期团队遇到相关场景，把2016年在堆糖做过的分享搬出来做了点完善，再分享一次：&lt;a href=&quot;/pdf/queuing-theory.pdf&quot;&gt;排队的艺术&lt;/a&gt;&lt;/p&gt;
 </description>
         <pubDate>Tue, 29 Jan 2019 14:30:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2019/01/29/queuing-theory.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2019/01/29/queuing-theory.html</guid>
+        <link>https://blog.yuzhi.run/computer/2019/01/29/queuing-theory.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2019/01/29/queuing-theory.html</guid>
         
         
         <category>computer</category>
@@ -1209,8 +1209,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;p&gt;分解本身不是目的，解决问题需要重组这些子块，如果无法重新组合，分解的意义就不存在。什么样的函数能组合呢？显然，一个函数的输出类型必须和另一个函数的输入类型保持一致。至少在函数式语言内，这是”类型”概念存在的根本原因。有关类型，我们后面再详谈。&lt;/p&gt;
 </description>
         <pubDate>Mon, 29 Oct 2018 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2018/10/29/fp-algebra.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/29/fp-algebra.html</guid>
+        <link>https://blog.yuzhi.run/computer/2018/10/29/fp-algebra.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2018/10/29/fp-algebra.html</guid>
         
         
         <category>computer</category>
@@ -1312,8 +1312,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;p&gt;我们从回顾众所周知的函数开始，再区分纯函数和非纯函数，进而专注于纯函数式的特点、好处。接下来，如何不是特别说明，提到函数时指的就是纯函数。函数式编程，更准确的说法应该是”纯函数”式编程。纯函数所带来的好处构成了函数式编程的核心优势，这点后续将有更多体现。&lt;/p&gt;
 </description>
         <pubDate>Sat, 20 Oct 2018 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2018/10/20/why-pure-fp.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/20/why-pure-fp.html</guid>
+        <link>https://blog.yuzhi.run/computer/2018/10/20/why-pure-fp.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2018/10/20/why-pure-fp.html</guid>
         
         
         <category>computer</category>
@@ -1384,8 +1384,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;p&gt;至此，我们已经能辨别纯函数，可纯函数有什么好处呢？&lt;/p&gt;
 </description>
         <pubDate>Fri, 05 Oct 2018 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2018/10/05/what-is-pure-function.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2018/10/05/what-is-pure-function.html</guid>
+        <link>https://blog.yuzhi.run/computer/2018/10/05/what-is-pure-function.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2018/10/05/what-is-pure-function.html</guid>
         
         
         <category>computer</category>
@@ -1486,8 +1486,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;/ul&gt;
 </description>
         <pubDate>Sun, 08 Jul 2018 14:30:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2018/07/08/merkle-tree.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2018/07/08/merkle-tree.html</guid>
+        <link>https://blog.yuzhi.run/computer/2018/07/08/merkle-tree.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2018/07/08/merkle-tree.html</guid>
         
         
         <category>computer</category>
@@ -1544,8 +1544,8 @@ allocations it has done, and periodically records a stack trace.&lt;/p&gt;
 &lt;/ul&gt;
 </description>
         <pubDate>Wed, 06 Dec 2017 12:15:09 +0800</pubDate>
-        <link>http://localhost:4000/computer/2017/12/06/fp-vs-op.html</link>
-        <guid isPermaLink="true">http://localhost:4000/computer/2017/12/06/fp-vs-op.html</guid>
+        <link>https://blog.yuzhi.run/computer/2017/12/06/fp-vs-op.html</link>
+        <guid isPermaLink="true">https://blog.yuzhi.run/computer/2017/12/06/fp-vs-op.html</guid>
         
         
         <category>computer</category>
