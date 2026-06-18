@@ -3,7 +3,8 @@ OMNI_BLOG ?= ../omni/blog
 .PHONY: setup sync build serve
 
 setup:
-	bundle install --path vendor/bundle
+	bundle config set --local path vendor/bundle
+	bundle install
 
 sync:
 	ruby scripts/sync_omni_blog.rb "$(OMNI_BLOG)"
