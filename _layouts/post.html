@@ -1,0 +1,29 @@
+---
+layout: default
+---
+<article class="post" itemscope itemtype="https://schema.org/BlogPosting">
+  <header class="post-header">
+    <a class="back-link" href="{{ '/' | relative_url }}">返回文章</a>
+    {% if page.categories.first %}
+      <p class="eyebrow">{{ page.categories.first }}</p>
+    {% endif %}
+    <h1 class="post-title" itemprop="headline">{{ page.title | escape }}</h1>
+    <p class="post-date">
+      <time datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">{{ page.date | date: "%Y-%m-%d" }}</time>
+      {% if page.author %}
+        <span>by {% if page.author.first %}{{ page.author | join: ", " }}{% else %}{{ page.author }}{% endif %}</span>
+      {% endif %}
+    </p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    {{ content }}
+  </div>
+</article>
+
+<div class="post-foot">
+  <p>微信扫一扫</p>
+  <img class="image-responsive" src="{{ '/img/wx.jpg' | relative_url }}" alt="WeChat QR code">
+</div>
+
+{% include comments.html %}

@@ -1,0 +1,21 @@
+---
+layout: default
+---
+<section class="home">
+  <header class="home-header">
+    <p class="eyebrow">文章</p>
+    <h1>{{ site.title | escape }}</h1>
+  </header>
+
+  <ol class="post-list">
+    {% for post in site.posts %}
+      <li>
+        <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%Y-%m-%d" }}</time>
+        <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a>
+        {% if post.categories.first %}
+          <span class="post-category">{{ post.categories.first }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</section>

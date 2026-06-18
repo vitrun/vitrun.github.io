@@ -1,0 +1,14 @@
+<footer class="site-footer">
+  <div class="wrapper footer-wrapper">
+    <p>{{ site.description }}</p>
+    <div class="footer-links" aria-label="Social links">
+      <a href="https://github.com/{{ site.author.github }}">GitHub</a>
+      <a href="https://twitter.com/{{ site.author.twitter }}">Twitter</a>
+      <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
+      <span class="wechat-link">
+        <button type="button" aria-label="Show WeChat QR code">WeChat</button>
+        <span class="wechat-card"><img src="{{ '/img/wx.jpg' | relative_url }}" alt="WeChat QR code"></span>
+      </span>
+    </div>
+  </div>
+</footer>

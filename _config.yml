@@ -1,0 +1,58 @@
+title: Food for Thought Expected
+description: "while [ 'alive' ]; do think && act | tee blog; done"
+url: "https://blog.yuzhi.run"
+baseurl: ""
+timezone: Asia/Shanghai
+
+markdown: kramdown
+highlighter: rouge
+future: true
+permalink: /:categories/:year/:month/:day/:title.html
+
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  math_engine: mathjax
+
+comments:
+  provider: giscus
+  giscus:
+    repo: vitrun/vitrun.github.io
+    repo_id: MDEwOlJlcG9zaXRvcnkxNTY1MDI0OQ==
+    category: General
+    category_id: DIC_kwDOAO7Nyc4C_ZIC
+    mapping: pathname
+    strict: 0
+    reactions_enabled: 1
+    emit_metadata: 0
+    input_position: bottom
+    theme: preferred_color_scheme
+    lang: zh-CN
+
+author:
+  name: yzrun
+  github: vitrun
+  twitter: gnogle
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - Makefile
+  - README.md
+  - scripts
+  - assets
+  - computer
+  - machine-learning
+  - math
+  - reading
+  - thinking
+  - _site
+  - vendor
