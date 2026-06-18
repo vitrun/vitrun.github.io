@@ -189,6 +189,10 @@ figcaption {
   border-bottom: 1px solid var(--line);
 }
 
+.home-header .eyebrow {
+  margin-bottom: 0;
+}
+
 .eyebrow {
   margin-bottom: 0.8rem;
   color: var(--accent);
@@ -207,15 +211,6 @@ figcaption {
   text-wrap: balance;
 }
 
-.home-header h1 {
-  margin-bottom: 0;
-  color: var(--ink);
-  font: 700 1.85rem/1.16 var(--font-serif);
-  letter-spacing: 0;
-  text-wrap: balance;
-}
-
-.home-header p,
 .not-found p {
   max-width: 44rem;
   color: var(--muted);
@@ -680,10 +675,6 @@ pre.highlight,
   .page-header h1,
   .not-found h1 {
     font-size: 1.9rem;
-  }
-
-  .home-header h1 {
-    font-size: 1.62rem;
   }
 
   .post-list li {
