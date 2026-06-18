@@ -1,8 +1,10 @@
 {% assign provider = site.comments.provider | default: "none" %}
+{% assign giscus_theme = site.comments.giscus.theme | default: "preferred_color_scheme" %}
+{% assign giscus_theme_prefix = giscus_theme | slice: 0 %}
 
 {% if provider != "none" %}
   <section class="comments" aria-label="Comments">
-    <h2>评论</h2>
+    <h2>Comments</h2>
 
     {% if provider == "giscus" and site.comments.giscus.repo and site.comments.giscus.repo_id and site.comments.giscus.category_id %}
       <script src="https://giscus.app/client.js"
@@ -15,7 +17,7 @@
         data-reactions-enabled="{{ site.comments.giscus.reactions_enabled | default: '1' }}"
         data-emit-metadata="{{ site.comments.giscus.emit_metadata | default: '0' }}"
         data-input-position="{{ site.comments.giscus.input_position | default: 'bottom' }}"
-        data-theme="{{ site.comments.giscus.theme | default: 'preferred_color_scheme' }}"
+        data-theme="{% if giscus_theme_prefix == '/' %}{{ giscus_theme | absolute_url }}{% else %}{{ giscus_theme }}{% endif %}"
         data-lang="{{ site.comments.giscus.lang | default: 'zh-CN' }}"
         crossorigin="anonymous"
         async>

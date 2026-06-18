@@ -448,17 +448,33 @@ pre.highlight,
 }
 
 .comments {
-  margin-top: 4rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--line);
+  margin-top: 4.5rem;
+  padding: 1.35rem 1.35rem 1.1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.82), rgba(247, 245, 240, 0.72)),
+    var(--paper);
+  border: 1px solid rgba(140, 63, 47, 0.12);
+  border-radius: 0.5rem;
+  box-shadow: 0 18px 50px rgba(67, 51, 34, 0.07);
 }
 
 .comments h2 {
-  margin-bottom: 1rem;
-  color: var(--muted);
+  margin-bottom: 0.9rem;
+  color: var(--accent);
   font: 750 0.78rem/1.2 var(--font-sans);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.comments .giscus,
+.comments .giscus-frame {
+  display: block;
+  width: 100%;
+}
+
+.comments .giscus-frame {
+  color-scheme: light;
+  border: 0;
 }
 
 .comments-note {
@@ -696,5 +712,11 @@ pre.highlight,
     margin-right: -0.35rem;
     margin-left: -0.35rem;
     border-radius: 0.4rem;
+  }
+
+  .comments {
+    margin-right: -0.15rem;
+    margin-left: -0.15rem;
+    padding: 1rem 0.9rem 0.85rem;
   }
 }
